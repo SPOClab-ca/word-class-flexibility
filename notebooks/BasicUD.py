@@ -24,7 +24,7 @@ get_ipython().run_line_magic('autoreload', '2')
 # In[2]:
 
 
-UD_FILE = "../data/en_partut-ud-train.conllu"
+UD_FILE = "../data/en_ewt-ud-train.conllu"
 
 with open(UD_FILE, "r", encoding="utf-8") as data_file:
   data = data_file.read()
@@ -142,25 +142,34 @@ verb_flexibility
 # In[14]:
 
 
+# Compute ratio of flexible words that are nouns, to compare with Balteiro (2007)
+num_flexible = len(lemma_count_df[lemma_count_df['is_flexible']])
+num_flexible_nouns = len(lemma_count_df[(lemma_count_df['majority_tag'] == 'NOUN') & lemma_count_df['is_flexible']])
+num_flexible_nouns / num_flexible
+
+
+# In[15]:
+
+
 # Top flexible nouns
 lemma_count_df[(lemma_count_df['majority_tag'] == 'NOUN') & (lemma_count_df['is_flexible'])].head(10)
 
 
-# In[15]:
+# In[16]:
 
 
 # Examples of inflexible nouns
 lemma_count_df[(lemma_count_df['majority_tag'] == 'NOUN') & (~lemma_count_df['is_flexible'])].head(10)
 
 
-# In[16]:
+# In[17]:
 
 
 # Examples of flexible verbs
 lemma_count_df[(lemma_count_df['majority_tag'] == 'VERB') & (lemma_count_df['is_flexible'])].head(10)
 
 
-# In[17]:
+# In[18]:
 
 
 # Examples of inflexible verbs
