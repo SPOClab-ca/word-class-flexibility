@@ -90,7 +90,7 @@ for lemma, lemma_occurrences in lemma_forms.items():
 lemma_count_df = pd.DataFrame(lemma_count_df)
 
 
-# In[9]:
+# In[8]:
 
 
 # Filter and compute minority count and ratio
@@ -102,7 +102,7 @@ lemma_count_df['minority_ratio'] = lemma_count_df['minority_count'] / lemma_coun
 lemma_count_df['is_flexible'] = lemma_count_df['minority_ratio'] > 0.05
 
 
-# In[10]:
+# In[9]:
 
 
 lemma_count_df.sort_values('total_count', ascending=False).head(20)
@@ -110,7 +110,7 @@ lemma_count_df.sort_values('total_count', ascending=False).head(20)
 
 # ## Distribution of lemmas
 
-# In[11]:
+# In[10]:
 
 
 plt.figure(figsize=(15, 5))
@@ -119,7 +119,7 @@ lemma_count_df['total_count'].hist(bins=range(0, 60))
 
 # ## Syntax flexibility metrics
 
-# In[12]:
+# In[11]:
 
 
 # Only consider lemmas with at least 5 usages
@@ -130,19 +130,19 @@ noun_flexibility = len(lemma_count_df[(lemma_count_df['majority_tag'] == 'NOUN')
 verb_flexibility = len(lemma_count_df[(lemma_count_df['majority_tag'] == 'VERB') & (lemma_count_df['is_flexible'])]) / verb_lemmas
 
 
-# In[13]:
+# In[12]:
 
 
 print('Noun Flexibility = P(flexible | noun):', noun_flexibility)
 
 
-# In[14]:
+# In[13]:
 
 
 print('Verb Flexibility = P(flexible | verb):', verb_flexibility)
 
 
-# In[15]:
+# In[14]:
 
 
 # Compute ratio of flexible words that are nouns, to compare with Balteiro (2007)
@@ -151,7 +151,7 @@ num_flexible_nouns = len(lemma_count_df[(lemma_count_df['majority_tag'] == 'NOUN
 print("Flexibility Asymmetry = P(noun | flexible):", num_flexible_nouns / num_flexible)
 
 
-# In[16]:
+# In[15]:
 
 
 flexible_df = lemma_count_df[lemma_count_df.is_flexible]
@@ -164,30 +164,65 @@ plt.show()
 
 # ## Show Examples
 
-# In[17]:
+# In[16]:
 
 
 # Top flexible nouns
 lemma_count_df[(lemma_count_df['majority_tag'] == 'NOUN') & (lemma_count_df['is_flexible'])].head(10)
 
 
-# In[18]:
+# In[17]:
 
 
 # Examples of inflexible nouns
 lemma_count_df[(lemma_count_df['majority_tag'] == 'NOUN') & (~lemma_count_df['is_flexible'])].head(10)
 
 
-# In[19]:
+# In[18]:
 
 
 # Examples of flexible verbs
 lemma_count_df[(lemma_count_df['majority_tag'] == 'VERB') & (lemma_count_df['is_flexible'])].head(10)
 
 
-# In[20]:
+# In[19]:
 
 
 # Examples of inflexible verbs
 lemma_count_df[(lemma_count_df['majority_tag'] == 'VERB') & (~lemma_count_df['is_flexible'])].head(10)
+
+
+# ## Chi-squared test that nouns and verbs are not equally likely to convert
+
+# In[20]:
+
+
+base_noun_is_base = lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].noun_count.sum()
+base_verb_is_base = lemma_count_df[lemma_count_df.majority_tag == 'VERB'].verb_count.sum()
+base_noun_not_base = lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].verb_count.sum()
+base_verb_not_base = lemma_count_df[lemma_count_df.majority_tag == 'VERB'].noun_count.sum()
+
+
+# In[21]:
+
+
+print('Instances of base=N, pos=N (no conversion):', base_noun_is_base)
+print('Instances of base=N, pos=V (conversion):', base_noun_not_base)
+print('Instances of base=V, pos=V (no conversion):', base_verb_is_base)
+print('Instances of base=V, pos=N (conversion):', base_verb_not_base)
+
+
+# In[22]:
+
+
+print('Likelihood of noun converting:', base_noun_not_base/base_noun_is_base)
+print('Likelihood of verb converting', base_verb_not_base/base_verb_is_base)
+
+
+# In[23]:
+
+
+import scipy.stats
+pvalue = scipy.stats.chi2_contingency([[base_noun_is_base, base_noun_not_base], [base_verb_is_base, base_verb_not_base]])[1]
+print('p-value from chi-squared test:', pvalue)
 
