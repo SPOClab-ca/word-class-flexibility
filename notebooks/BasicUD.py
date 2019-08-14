@@ -8,12 +8,14 @@
 # In[1]:
 
 
+import sys
+sys.path.append('../')
+
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
-import pandas as pd
-import conllu
+
+import src.ud_corpus
 
 get_ipython().run_line_magic('matplotlib', 'inline')
 get_ipython().run_line_magic('load_ext', 'autoreload')
@@ -29,88 +31,40 @@ get_ipython().run_line_magic('autoreload', '2')
 UD_FILE = "../data/en_ewt-ud-train.conllu"
 #UD_FILE = "../data/ja_gsd-ud-train.conllu"
 
-with open(UD_FILE, "r", encoding="utf-8") as data_file:
-  data = data_file.read()
-  data = conllu.parse(data)
-
-
-# In[3]:
-
-
-data[:3]
+ud = src.ud_corpus.UDCorpus(data_file_path=UD_FILE)
+ud.data[:3]
 
 
 # ## POS counts
 
-# In[4]:
+# In[3]:
 
 
 pos_counts = defaultdict(int)
 
-for token_list in data:
+for token_list in ud.data:
   for token in token_list:
     pos_tag = token['upostag']
     pos_counts[pos_tag] += 1
 
 
-# In[5]:
+# In[4]:
 
 
 plt.figure(figsize=(12, 6))
 plt.bar(pos_counts.keys(), pos_counts.values())
 
 
-# ## Gather usages of each lemma
-
-# In[6]:
+# In[5]:
 
 
-# {lemma -> (POS, word, sentence)}
-lemma_forms = defaultdict(list)
-
-for token_list in data:
-  sentence = ' '.join([t['form'] for t in token_list])
-  for token in token_list:
-    pos_tag = token['upostag']
-    lemma = token['lemma']
-    word = token['form']
-    lemma_forms[lemma].append((pos_tag, word, sentence))
-
-
-# ## Noun/Verb statistics for each lemma
-
-# In[7]:
-
-
-lemma_count_df = []
-for lemma, lemma_occurrences in lemma_forms.items():
-  noun_count = len([word for (pos, word, _) in lemma_occurrences if pos == 'NOUN'])
-  verb_count = len([word for (pos, word, _) in lemma_occurrences if pos == 'VERB'])
-  lemma_count_df.append({'lemma': lemma, 'noun_count': noun_count, 'verb_count': verb_count})
-lemma_count_df = pd.DataFrame(lemma_count_df)
-
-
-# In[8]:
-
-
-# Filter and compute minority count and ratio
-lemma_count_df = lemma_count_df[lemma_count_df['noun_count'] + lemma_count_df['verb_count'] > 0]
-lemma_count_df['majority_tag'] = np.where(lemma_count_df['noun_count'] >= lemma_count_df['verb_count'], 'NOUN', 'VERB')
-lemma_count_df['total_count'] = lemma_count_df[['noun_count', 'verb_count']].sum(axis=1)
-lemma_count_df['minority_count'] = lemma_count_df[['noun_count', 'verb_count']].min(axis=1)
-lemma_count_df['minority_ratio'] = lemma_count_df['minority_count'] / lemma_count_df['total_count']
-lemma_count_df['is_flexible'] = lemma_count_df['minority_ratio'] > 0.05
-
-
-# In[9]:
-
-
+lemma_count_df = ud.get_per_lemma_stats()
 lemma_count_df.sort_values('total_count', ascending=False).head(20)
 
 
 # ## Distribution of lemmas
 
-# In[10]:
+# In[6]:
 
 
 plt.figure(figsize=(15, 5))
@@ -119,7 +73,7 @@ lemma_count_df['total_count'].hist(bins=range(0, 60))
 
 # ## Syntax flexibility metrics
 
-# In[11]:
+# In[7]:
 
 
 # Only consider lemmas with at least 5 usages
@@ -130,19 +84,19 @@ noun_flexibility = len(lemma_count_df[(lemma_count_df['majority_tag'] == 'NOUN')
 verb_flexibility = len(lemma_count_df[(lemma_count_df['majority_tag'] == 'VERB') & (lemma_count_df['is_flexible'])]) / verb_lemmas
 
 
-# In[12]:
+# In[8]:
 
 
 print('Noun Flexibility = P(flexible | noun):', noun_flexibility)
 
 
-# In[13]:
+# In[9]:
 
 
 print('Verb Flexibility = P(flexible | verb):', verb_flexibility)
 
 
-# In[14]:
+# In[10]:
 
 
 # Compute ratio of flexible words that are nouns, to compare with Balteiro (2007)
@@ -151,7 +105,7 @@ num_flexible_nouns = len(lemma_count_df[(lemma_count_df['majority_tag'] == 'NOUN
 print("Flexibility Asymmetry = P(noun | flexible):", num_flexible_nouns / num_flexible)
 
 
-# In[15]:
+# In[11]:
 
 
 flexible_df = lemma_count_df[lemma_count_df.is_flexible]
@@ -164,28 +118,28 @@ plt.show()
 
 # ## Show Examples
 
-# In[16]:
+# In[12]:
 
 
 # Top flexible nouns
 lemma_count_df[(lemma_count_df['majority_tag'] == 'NOUN') & (lemma_count_df['is_flexible'])].head(10)
 
 
-# In[17]:
+# In[13]:
 
 
 # Examples of inflexible nouns
 lemma_count_df[(lemma_count_df['majority_tag'] == 'NOUN') & (~lemma_count_df['is_flexible'])].head(10)
 
 
-# In[18]:
+# In[14]:
 
 
 # Examples of flexible verbs
 lemma_count_df[(lemma_count_df['majority_tag'] == 'VERB') & (lemma_count_df['is_flexible'])].head(10)
 
 
-# In[19]:
+# In[15]:
 
 
 # Examples of inflexible verbs
@@ -194,7 +148,7 @@ lemma_count_df[(lemma_count_df['majority_tag'] == 'VERB') & (~lemma_count_df['is
 
 # ## Chi-squared test that nouns and verbs are not equally likely to convert
 
-# In[20]:
+# In[16]:
 
 
 base_noun_is_base = lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].noun_count.sum()
@@ -203,7 +157,7 @@ base_noun_not_base = lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].verb_
 base_verb_not_base = lemma_count_df[lemma_count_df.majority_tag == 'VERB'].noun_count.sum()
 
 
-# In[21]:
+# In[17]:
 
 
 print('Instances of base=N, pos=N (no conversion):', base_noun_is_base)
@@ -212,14 +166,14 @@ print('Instances of base=V, pos=V (no conversion):', base_verb_is_base)
 print('Instances of base=V, pos=N (conversion):', base_verb_not_base)
 
 
-# In[22]:
+# In[18]:
 
 
 print('Likelihood of noun converting:', base_noun_not_base/base_noun_is_base)
 print('Likelihood of verb converting', base_verb_not_base/base_verb_is_base)
 
 
-# In[23]:
+# In[19]:
 
 
 import scipy.stats

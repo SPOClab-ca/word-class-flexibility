@@ -8,13 +8,18 @@
 # In[1]:
 
 
+import sys
+sys.path.append('../')
+
 import numpy as np
 import pandas as pd
 import allennlp.commands.elmo
 import matplotlib.pyplot as plt
 import seaborn as sns
-import conllu
 import sklearn.decomposition
+import tqdm
+
+import src.ud_corpus
 
 get_ipython().run_line_magic('matplotlib', 'inline')
 get_ipython().run_line_magic('load_ext', 'autoreload')
@@ -28,15 +33,26 @@ get_ipython().run_line_magic('autoreload', '2')
 
 UD_FILE = "../data/en_ewt-ud-train.conllu"
 
-with open(UD_FILE, "r", encoding="utf-8") as data_file:
-  data = data_file.read()
-  data = conllu.parse(data)
+ud = src.ud_corpus.UDCorpus(data_file_path=UD_FILE)
+ud.data[:3]
 
+
+# ## Run ELMo on the entire corpus
 
 # In[3]:
 
 
-data[:3]
+elmo = allennlp.commands.elmo.ElmoEmbedder(cuda_device=0)
+data_as_tokens = [[t['form'] for t in token_list] for token_list in ud.data]
+
+BATCH_SIZE = 64
+elmo_embeddings = []
+for ix in tqdm.tqdm(range(0, len(data_as_tokens), BATCH_SIZE)):
+  batch = data_as_tokens[ix : ix+BATCH_SIZE]
+  batch_embeddings = elmo.embed_batch(batch)
+  # Only take embeddings from last ELMo layer
+  batch_embeddings = [x[-1] for x in batch_embeddings]
+  elmo_embeddings.extend(batch_embeddings)
 
 
 # ## ELMo embeddings of instances of a fixed lemma
@@ -44,29 +60,13 @@ data[:3]
 # In[4]:
 
 
-elmo = allennlp.commands.elmo.ElmoEmbedder(cuda_device=0)
-
-
-# In[5]:
-
-
 FIXED_LEMMA = "work"
-
-
-# In[6]:
-
-
 noun_embeddings = []
 verb_embeddings = []
 
-for token_list in data:
-  tokens_for_elmo = [t['form'] for t in token_list]
-  
-  # Skip if it doesn't contain the word
-  if FIXED_LEMMA not in [t['lemma'] for t in token_list]:
-    continue
-  
-  embeddings = elmo.embed_sentence(tokens_for_elmo)[2]
+for sentence_ix in range(len(ud.data)):
+  token_list = ud.data[sentence_ix]
+  embeddings = elmo_embeddings[sentence_ix]
   for i in range(len(token_list)):
     if token_list[i]['lemma'] == FIXED_LEMMA:
       if token_list[i]['upostag'] == 'NOUN':
@@ -74,20 +74,15 @@ for token_list in data:
       elif token_list[i]['upostag'] == 'VERB':
         verb_embeddings.append(embeddings[i])
 
-print(len(noun_embeddings))
-print(len(verb_embeddings))
-
-
-# In[7]:
-
-
 noun_embeddings = np.vstack(noun_embeddings)
 verb_embeddings = np.vstack(verb_embeddings)
+print("Noun instances:", noun_embeddings.shape[0])
+print("Verb instances:", verb_embeddings.shape[0])
 
 
 # ## Apply PCA and plot
 
-# In[8]:
+# In[5]:
 
 
 pca = sklearn.decomposition.PCA(n_components=2)
@@ -96,7 +91,7 @@ all_embeddings_df = pd.DataFrame({'x0': all_embeddings[:,0], 'x1': all_embedding
 all_embeddings_df['pos'] = ['noun'] * len(noun_embeddings) + ['verb'] * len(verb_embeddings)
 
 
-# In[9]:
+# In[6]:
 
 
 plot = sns.scatterplot(data=all_embeddings_df, x='x0', y='x1', hue='pos')
