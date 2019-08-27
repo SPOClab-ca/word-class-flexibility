@@ -15,7 +15,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-import src.ud_corpus
+import src.corpus
 
 get_ipython().run_line_magic('matplotlib', 'inline')
 get_ipython().run_line_magic('load_ext', 'autoreload')
@@ -31,7 +31,7 @@ get_ipython().run_line_magic('autoreload', '2')
 UD_FILE = "../data/en_ewt-ud-train.conllu"
 #UD_FILE = "../data/ja_gsd-ud-train.conllu"
 
-ud = src.ud_corpus.UDCorpus(data_file_path=UD_FILE)
+ud = src.corpus.POSCorpus.create_from_ud(data_file_path=UD_FILE)
 ud.data[:3]
 
 

@@ -20,7 +20,7 @@ import sklearn.decomposition
 import sklearn.metrics
 import tqdm
 
-import src.ud_corpus
+import src.corpus
 
 get_ipython().run_line_magic('matplotlib', 'inline')
 get_ipython().run_line_magic('load_ext', 'autoreload')
@@ -29,22 +29,22 @@ get_ipython().run_line_magic('autoreload', '2')
 
 # ## Read the CoNLL-U file
 
-# In[2]:
+# In[3]:
 
 
 UD_FILE = "../data/en_ewt-ud-train.conllu"
 
-ud = src.ud_corpus.UDCorpus(data_file_path=UD_FILE)
+ud = src.corpus.POSCorpus.create_from_ud(data_file_path=UD_FILE)
 ud.data[:3]
 
 
 # ## Run ELMo on the entire corpus
 
-# In[3]:
+# In[5]:
 
 
 elmo = allennlp.commands.elmo.ElmoEmbedder(cuda_device=0)
-data_as_tokens = [[t['form'] for t in token_list] for token_list in ud.data]
+data_as_tokens = [[t['word'] for t in sentence] for sentence in ud.sentences]
 
 BATCH_SIZE = 64
 elmo_embeddings = []
@@ -58,7 +58,7 @@ for ix in tqdm.tqdm(range(0, len(data_as_tokens), BATCH_SIZE)):
 
 # ## ELMo embeddings of instances of a fixed lemma
 
-# In[4]:
+# In[6]:
 
 
 def get_elmo_embeddings_for_lemma(lemma):
@@ -80,7 +80,7 @@ def get_elmo_embeddings_for_lemma(lemma):
   return noun_embeddings, verb_embeddings
 
 
-# In[15]:
+# In[ ]:
 
 
 FIXED_LEMMA = "work"
@@ -91,7 +91,7 @@ print("Verb instances:", verb_embeddings.shape[0])
 
 # ## Apply PCA and plot
 
-# In[16]:
+# In[ ]:
 
 
 pca = sklearn.decomposition.PCA(n_components=2)
@@ -100,7 +100,7 @@ all_embeddings_df = pd.DataFrame({'x0': all_embeddings[:,0], 'x1': all_embedding
 all_embeddings_df['pos'] = ['noun'] * len(noun_embeddings) + ['verb'] * len(verb_embeddings)
 
 
-# In[17]:
+# In[ ]:
 
 
 plot = sns.scatterplot(data=all_embeddings_df, x='x0', y='x1', hue='pos')
@@ -110,7 +110,7 @@ plt.show()
 
 # ## Cosine similarity between noun and verb usages
 
-# In[8]:
+# In[ ]:
 
 
 lemma_count_df = ud.get_per_lemma_stats()
@@ -121,7 +121,7 @@ lemma_count_df = lemma_count_df.sort_values('total_count', ascending=False)
 print('Remaining lemmas:', len(lemma_count_df))
 
 
-# In[9]:
+# In[ ]:
 
 
 def get_nv_cosine_similarity(row):
@@ -135,19 +135,19 @@ def get_nv_cosine_similarity(row):
 lemma_count_df['nv_cosine_similarity'] = lemma_count_df.apply(get_nv_cosine_similarity, axis=1)
 
 
-# In[10]:
+# In[ ]:
 
 
 lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_similarity']]   .sort_values('nv_cosine_similarity').head(8)
 
 
-# In[11]:
+# In[ ]:
 
 
 lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_similarity']]   .sort_values('nv_cosine_similarity', ascending=False).head(8)
 
 
-# In[12]:
+# In[ ]:
 
 
 plot = sns.distplot(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_cosine_similarity, label='Base=N')
@@ -158,7 +158,7 @@ plot.set(title="Average Cosine Similarity between Noun/Verb Usage",
 plt.show()
 
 
-# In[13]:
+# In[ ]:
 
 
 # T-test of difference in mean
