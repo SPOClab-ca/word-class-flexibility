@@ -2,8 +2,7 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import conllu
-import nltk.corpus.reader.bnc
-import tqdm
+import pickle
 
 
 class POSCorpus(object):
@@ -42,27 +41,11 @@ class POSCorpus(object):
   
 
   @classmethod
-  def create_from_bnc(cls, data_file_path):
-    """Initialize corpus from the root directory of BNC corpus"""
+  def create_from_bnc_pickled(cls, data_file_path):
+    """Initialize corpus from pickled BNC corpus, generated from preprocess/process_bnc.py"""
     corpus = POSCorpus()
-    bnc_reader = nltk.corpus.reader.bnc.BNCCorpusReader(root=data_file_path, fileids=r'[a-z]{3}/\w*\.xml')
-
-    # bnc_reader.sents(): list of [word1, word2, ...]
-    # bnc_reader.tagged_sents(): list of [(lemma1, pos1), (lemma2, pos2), ...]
-    # There is no way to get all three at the same time, so we must zip and traverse both lists simultaneously.
-    sents = bnc_reader.sents()
-    tagged_sents = bnc_reader.tagged_sents(stem=True)
-
-    corpus.sentences = []
-    for sent, tagged_sent in tqdm.tqdm(zip(sents, tagged_sents)):
-      sentence = []
-      for word, (lemma, pos) in zip(sent, tagged_sent):
-        # Replace SUBST -> NOUN to be consistent with UD tags
-        if pos == 'SUBST':
-          pos = 'NOUN'
-        sentence.append({'word': word, 'lemma': lemma, 'pos': pos})
-      corpus.sentences.append(sentence)
-
+    with open(data_file_path, 'rb') as f:
+      corpus.sentences = pickle.load(f)
     return corpus
 
 
