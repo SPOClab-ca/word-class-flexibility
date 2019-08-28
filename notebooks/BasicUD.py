@@ -22,17 +22,18 @@ get_ipython().run_line_magic('load_ext', 'autoreload')
 get_ipython().run_line_magic('autoreload', '2')
 
 
-# ## Read the CoNLL-U file
+# ## Parse the corpus
 
 # In[2]:
 
 
 #UD_FILE = "../data/zh_gsd-ud-train.conllu"
-UD_FILE = "../data/en_ewt-ud-train.conllu"
+#UD_FILE = "../data/en_ewt-ud-train.conllu"
 #UD_FILE = "../data/ja_gsd-ud-train.conllu"
 
-ud = src.corpus.POSCorpus.create_from_ud(data_file_path=UD_FILE)
-ud.data[:3]
+BNC_FILE = "../data/bnc/bnc.pkl"
+
+corpus = src.corpus.POSCorpus.create_from_bnc_pickled(data_file_path=BNC_FILE)
 
 
 # ## POS counts
@@ -42,10 +43,11 @@ ud.data[:3]
 
 pos_counts = defaultdict(int)
 
-for token_list in ud.data:
-  for token in token_list:
-    pos_tag = token['upostag']
-    pos_counts[pos_tag] += 1
+for sentence in corpus.sentences:
+  for token in sentence:
+    pos_tag = token['pos']
+    if pos_tag:
+      pos_counts[pos_tag] += 1
 
 
 # In[4]:
@@ -58,7 +60,7 @@ plt.bar(pos_counts.keys(), pos_counts.values())
 # In[5]:
 
 
-lemma_count_df = ud.get_per_lemma_stats()
+lemma_count_df = corpus.get_per_lemma_stats()
 lemma_count_df.sort_values('total_count', ascending=False).head(20)
 
 
@@ -110,7 +112,7 @@ print("Flexibility Asymmetry = P(noun | flexible):", num_flexible_nouns / num_fl
 
 flexible_df = lemma_count_df[lemma_count_df.is_flexible]
 dplot = sns.distplot(flexible_df.noun_count / flexible_df.total_count, bins=20)
-dplot.set(xlabel='noun ratio', ylabel="density", title=UD_FILE)
+dplot.set(xlabel='noun ratio', ylabel="density", title='BNC 4M')
 dplot.set_xlim((0, 1))
 dplot.axvline(x=0.5, color='r')
 plt.show()
