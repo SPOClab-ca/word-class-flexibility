@@ -95,10 +95,10 @@ def get_elmo_embeddings_for_lemma(lemma):
   return noun_embeddings, verb_embeddings
 
 
-# In[10]:
+# In[54]:
 
 
-FIXED_LEMMA = "work"
+FIXED_LEMMA = "use"
 noun_embeddings, verb_embeddings = get_elmo_embeddings_for_lemma(FIXED_LEMMA)
 print("Noun instances:", noun_embeddings.shape[0])
 print("Verb instances:", verb_embeddings.shape[0])
@@ -106,7 +106,7 @@ print("Verb instances:", verb_embeddings.shape[0])
 
 # ## Apply PCA and plot
 
-# In[11]:
+# In[55]:
 
 
 pca = sklearn.decomposition.PCA(n_components=2)
@@ -115,12 +115,33 @@ all_embeddings_df = pd.DataFrame({'x0': all_embeddings[:,0], 'x1': all_embedding
 all_embeddings_df['pos'] = ['noun'] * len(noun_embeddings) + ['verb'] * len(verb_embeddings)
 
 
-# In[12]:
+# In[56]:
 
 
 plot = sns.scatterplot(data=all_embeddings_df, x='x0', y='x1', hue='pos')
 plot.set(title="ELMo embeddings for lemma: '%s'" % FIXED_LEMMA)
 plt.show()
+
+
+# ## Utility to inspect what ELMo is capturing
+
+# In[64]:
+
+
+num_printed = 0
+for sentence_ix in range(len(sampled_sentences)):
+  token_list = sampled_sentences[sentence_ix]
+  embeddings = elmo_embeddings[sentence_ix]
+  for i in range(len(token_list)):
+    if token_list[i]['lemma'] == FIXED_LEMMA:
+      v = pca.transform(embeddings[i][np.newaxis, :])[0]
+      if v[1] < -10: # <- Put whatever condition here
+        print(v)
+        print(' '.join([t['word'] for t in token_list]))
+        print()
+        num_printed += 1
+  if num_printed > 10:
+    break
 
 
 # ## Cosine similarity between noun and verb usages
