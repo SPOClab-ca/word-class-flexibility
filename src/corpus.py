@@ -49,7 +49,7 @@ class POSCorpus(object):
     return corpus
 
 
-  def get_per_lemma_stats(self, POS1='NOUN', POS2='VERB', flexibility_threshold=0.05):
+  def get_per_lemma_stats(self, flexibility_threshold=0.05):
     # Gather usages of each lemma
     # {lemma -> (POS, word)}
     lemma_forms = defaultdict(list)
@@ -60,18 +60,18 @@ class POSCorpus(object):
         pos = token['pos']
         lemma_forms[lemma].append((pos, word))
 
-    # Part-of-speech statistics for each lemma
+    # Noun/Verb statistics for each lemma
     lemma_count_df = []
     for lemma, lemma_occurrences in lemma_forms.items():
-      pos1_count = len([word for (pos, word) in lemma_occurrences if pos == POS1])
-      pos2_count = len([word for (pos, word) in lemma_occurrences if pos == POS2])
-      lemma_count_df.append({'lemma': lemma, 'pos1_count': pos1_count, 'pos2_count': pos2_count})
+      noun_count = len([word for (pos, word) in lemma_occurrences if pos == 'NOUN'])
+      verb_count = len([word for (pos, word) in lemma_occurrences if pos == 'VERB'])
+      lemma_count_df.append({'lemma': lemma, 'noun_count': noun_count, 'verb_count': verb_count})
     lemma_count_df = pd.DataFrame(lemma_count_df)
 
-    lemma_count_df = lemma_count_df[lemma_count_df['pos1_count'] + lemma_count_df['pos2_count'] > 0]
-    lemma_count_df['majority_tag'] = np.where(lemma_count_df['pos1_count'] >= lemma_count_df['pos2_count'], POS1, POS2)
-    lemma_count_df['total_count'] = lemma_count_df[['pos1_count', 'pos2_count']].sum(axis=1)
-    lemma_count_df['minority_count'] = lemma_count_df[['pos1_count', 'pos2_count']].min(axis=1)
+    lemma_count_df = lemma_count_df[lemma_count_df['noun_count'] + lemma_count_df['verb_count'] > 0]
+    lemma_count_df['majority_tag'] = np.where(lemma_count_df['noun_count'] >= lemma_count_df['verb_count'], 'NOUN', 'VERB')
+    lemma_count_df['total_count'] = lemma_count_df[['noun_count', 'verb_count']].sum(axis=1)
+    lemma_count_df['minority_count'] = lemma_count_df[['noun_count', 'verb_count']].min(axis=1)
     lemma_count_df['minority_ratio'] = lemma_count_df['minority_count'] / lemma_count_df['total_count']
     lemma_count_df['is_flexible'] = lemma_count_df['minority_ratio'] > flexibility_threshold
 
