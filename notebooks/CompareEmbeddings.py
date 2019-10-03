@@ -45,7 +45,7 @@ annotation_df.head()
 
 # ## Run ELMo, but not the whole thing
 
-# In[10]:
+# In[4]:
 
 
 sentences_with_relevant_lemmas = []
@@ -56,28 +56,58 @@ for sentence in corpus.sentences:
       break
 
 
-# In[11]:
+# In[5]:
 
 
 embedder = src.semantic_embedding.SemanticEmbedding(sentences_with_relevant_lemmas)
 
 
-# ## Run ELMo NV similarity
+# ## Run NV similarity
 
-# In[12]:
-
-
-annotation_df['nv_cosine_similarity'] =   annotation_df.apply(lambda row: embedder.get_nv_cosine_similarity(row.lemma), axis=1)
+# In[7]:
 
 
-# In[13]:
+annotation_df['nv_cosine_similarity'] =   annotation_df.apply(lambda row: embedder.get_elmo_nv_similarity(row.lemma), axis=1)
+
+
+# In[8]:
 
 
 sns.boxplot(annotation_df.mean_score, annotation_df.nv_cosine_similarity)
 
 
-# In[14]:
+# In[9]:
 
 
-scipy.stats.pearsonr(annotation_df.mean_score, annotation_df.nv_cosine_similarity)
+scipy.stats.spearmanr(annotation_df.mean_score, annotation_df.nv_cosine_similarity)
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
 
