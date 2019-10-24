@@ -11,6 +11,10 @@
 import sys
 sys.path.append('../')
 
+get_ipython().run_line_magic('matplotlib', 'inline')
+get_ipython().run_line_magic('load_ext', 'autoreload')
+get_ipython().run_line_magic('autoreload', '2')
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -20,10 +24,6 @@ import scipy.stats
 
 import src.corpus
 import src.semantic_embedding
-
-get_ipython().run_line_magic('matplotlib', 'inline')
-get_ipython().run_line_magic('load_ext', 'autoreload')
-get_ipython().run_line_magic('autoreload', '2')
 
 
 # ## Parse the corpus
@@ -43,7 +43,7 @@ relevant_lemmas = annotation_df.lemma.tolist()
 annotation_df.head()
 
 
-# ## Run ELMo, but not the whole thing
+# ## Filter sentences containing lemmas we care about
 
 # In[4]:
 
@@ -56,27 +56,32 @@ for sentence in corpus.sentences:
       break
 
 
-# In[5]:
+# ## Embedder method: ELMo
+
+# In[14]:
 
 
 embedder = src.semantic_embedding.SemanticEmbedding(sentences_with_relevant_lemmas)
-
-
-# ## Run NV similarity
-
-# In[7]:
-
-
+embedder.init_elmo(layer=0)
 annotation_df['nv_cosine_similarity'] =   annotation_df.apply(lambda row: embedder.get_elmo_nv_similarity(row.lemma), axis=1)
 
 
-# In[8]:
+# ## Embedder method: GloVe
+embedder = src.semantic_embedding.SemanticEmbedding(sentences_with_relevant_lemmas)
+embedder.init_glove()
+annotation_df['nv_cosine_similarity'] = annotation_df.apply(
+  lambda row: embedder.get_glove_nv_similarity(row.lemma, context=0, include_self=True),
+  axis=1
+)
+# ## Run NV similarity
+
+# In[15]:
 
 
 sns.boxplot(annotation_df.mean_score, annotation_df.nv_cosine_similarity)
 
 
-# In[9]:
+# In[16]:
 
 
 scipy.stats.spearmanr(annotation_df.mean_score, annotation_df.nv_cosine_similarity)

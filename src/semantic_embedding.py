@@ -9,24 +9,30 @@ GLOVE_LOCATION = '/h/bai/moar/snap/data/glove.840B.300d.txt'
 #GLOVE_LOCATION = '../data/glove/glove.6B.100d.txt'
 
 class SemanticEmbedding:
-  def __init__(self, sentences, generate_elmo=True):
+  def __init__(self, sentences):
     self.sentences = sentences
-    self.glove_vectors = KeyedVectors.load_word2vec_format(GLOVE_LOCATION, limit=100000)
-    #self.glove_vectors = KeyedVectors.load_word2vec_format(GLOVE_LOCATION)
 
-    if generate_elmo:
-      # Generate ELMo embeddings here, because we must batch to be efficient
-      self.elmo = allennlp.commands.elmo.ElmoEmbedder(cuda_device=0)
-      data_as_tokens = [[t['word'] for t in sentence] for sentence in sentences]
+  def init_glove(self, limit=100000):
+    """Load GloVe vectors
+    @param limit = max number of words to load
+    """
+    self.glove_vectors = KeyedVectors.load_word2vec_format(GLOVE_LOCATION, limit=limit)
 
-      BATCH_SIZE = 64
-      self.elmo_embeddings = []
-      for ix in tqdm.tqdm(range(0, len(data_as_tokens), BATCH_SIZE)):
-        batch = data_as_tokens[ix : ix+BATCH_SIZE]
-        batch_embeddings = self.elmo.embed_batch(batch)
-        # Only take embeddings from last ELMo layer
-        batch_embeddings = [x[-1] for x in batch_embeddings]
-        self.elmo_embeddings.extend(batch_embeddings)
+  def init_elmo(self, layer=2):
+    """Init here because batching required for efficiency
+    @param layer = one of [0, 1, 2]
+    """
+    self.elmo = allennlp.commands.elmo.ElmoEmbedder(cuda_device=0)
+    data_as_tokens = [[t['word'] for t in sentence] for sentence in self.sentences]
+
+    BATCH_SIZE = 64
+    self.elmo_embeddings = []
+    for ix in tqdm.tqdm(range(0, len(data_as_tokens), BATCH_SIZE)):
+      batch = data_as_tokens[ix : ix+BATCH_SIZE]
+      batch_embeddings = self.elmo.embed_batch(batch)
+      # Only take embeddings from last ELMo layer
+      batch_embeddings = [x[layer] for x in batch_embeddings]
+      self.elmo_embeddings.extend(batch_embeddings)
 
   def get_elmo_embeddings_for_lemma(self, lemma):
     noun_embeddings = []
@@ -59,7 +65,11 @@ class SemanticEmbedding:
       )
     )
 
-  def get_glove_nv_similarity(self, lemma, context=8):
+  def get_glove_nv_similarity(self, lemma, context=8, include_self=False):
+    """
+    @param context = window of context around word to use
+    @param include_self = whether to include the lemma itself
+    """
     noun_embeddings = []
     verb_embeddings = []
 
@@ -79,7 +89,14 @@ class SemanticEmbedding:
 
       context_embeddings = []
       for ix, token in enumerate(token_list):
-        if ix != lemma_ix and abs(ix - lemma_ix) <= context:
+        # Decide if this token is in context window
+        dist_to_lemma = abs(ix - lemma_ix)
+        if include_self:
+          is_in_context = dist_to_lemma <= context
+        else:
+          is_in_context = (ix != lemma_ix) and (dist_to_lemma <= context)
+
+        if is_in_context:
           try:
             context_embeddings.append(self.glove_vectors[token['word'].lower()])
           except Exception:
