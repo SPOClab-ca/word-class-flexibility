@@ -57,13 +57,25 @@ for sentence in corpus.sentences:
 
 
 # ## Embedder method: ELMo
+embedder = src.semantic_embedding.SemanticEmbedding(sentences_with_relevant_lemmas)
+embedder.init_elmo(layer=0)
+annotation_df['nv_cosine_similarity'] = \
+  annotation_df.apply(lambda row: embedder.get_elmo_nv_similarity(row.lemma), axis=1)
+# ## Embedder method: BERT
+
+# In[ ]:
+
+
+embedder = src.semantic_embedding.SemanticEmbedding(sentences_with_relevant_lemmas)
+embedder.init_bert()
+#annotation_df['nv_cosine_similarity'] = \
+  #annotation_df.apply(lambda row: embedder.get_elmo_nv_similarity(row.lemma), axis=1)
+
 
 # In[14]:
 
 
-embedder = src.semantic_embedding.SemanticEmbedding(sentences_with_relevant_lemmas)
-embedder.init_elmo(layer=0)
-annotation_df['nv_cosine_similarity'] =   annotation_df.apply(lambda row: embedder.get_elmo_nv_similarity(row.lemma), axis=1)
+embedder.get_contextual_nv_similarity('work', method='bert')
 
 
 # ## Embedder method: GloVe
@@ -75,13 +87,13 @@ annotation_df['nv_cosine_similarity'] = annotation_df.apply(
 )
 # ## Run NV similarity
 
-# In[15]:
+# In[ ]:
 
 
 sns.boxplot(annotation_df.mean_score, annotation_df.nv_cosine_similarity)
 
 
-# In[16]:
+# In[ ]:
 
 
 scipy.stats.spearmanr(annotation_df.mean_score, annotation_df.nv_cosine_similarity)

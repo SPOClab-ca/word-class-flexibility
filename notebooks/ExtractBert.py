@@ -5,7 +5,7 @@
 # 
 # Notebook to experiment with libraries to extract parts of BERT embeddings
 
-# In[2]:
+# In[1]:
 
 
 import transformers
@@ -19,50 +19,71 @@ bert_model = transformers.BertModel.from_pretrained('bert-base-uncased', output_
 bert_tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
 
 
-# In[10]:
+# In[3]:
 
 
-input_ids = bert_tokenizer.encode('My cat is called Xiaonuanhuo and she is warm and fluffy')
+STR = "My cat is called Xiaonuanhuo and she is warm and fluffy"
+bert_tokenizer.tokenize(STR)
+
+
+# In[4]:
+
+
+input_ids = bert_tokenizer.encode(STR)
 input_ids
 
 
-# In[11]:
+# In[5]:
 
 
 len(input_ids)
 
 
-# In[12]:
+# In[6]:
+
+
+input_ids2 = bert_tokenizer.encode("this is a much shorter sentence")
+len(input_ids2)
+
+
+# In[7]:
 
 
 bert_embeddings = bert_model(torch.tensor([input_ids]))
+#bert_embeddings = bert_model(torch.tensor([input_ids, input_ids2]))
 bert_embeddings[0]
 
 
-# In[13]:
+# In[8]:
+
+
+bert_embeddings[0].shape
+
+
+# In[9]:
 
 
 # Final hidden layer, one for each token
 bert_embeddings[0].shape
 
 
-# In[14]:
+# In[10]:
 
 
 # Pooled layer
 bert_embeddings[1].shape
 
 
-# In[16]:
+# In[11]:
 
 
 len(bert_embeddings[2])
 
 
-# In[19]:
+# In[12]:
 
 
 # Nth hidden layer of BERT
-N=7
-bert_embeddings[2][N].shape
+layer = 7
+bert_embeddings[2][layer].shape
 

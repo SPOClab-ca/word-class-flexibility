@@ -3,10 +3,11 @@ import pandas as pd
 import allennlp.commands.elmo
 from gensim.models import KeyedVectors
 import sklearn.metrics
+import torch
+import transformers
 import tqdm
 
 GLOVE_LOCATION = '/h/bai/moar/snap/data/glove.840B.300d.txt'
-#GLOVE_LOCATION = '../data/glove/glove.6B.100d.txt'
 
 class SemanticEmbedding:
   def __init__(self, sentences):
@@ -30,9 +31,70 @@ class SemanticEmbedding:
     for ix in tqdm.tqdm(range(0, len(data_as_tokens), BATCH_SIZE)):
       batch = data_as_tokens[ix : ix+BATCH_SIZE]
       batch_embeddings = self.elmo.embed_batch(batch)
-      # Only take embeddings from last ELMo layer
+      # Only take embeddings from specified ELMo layer
       batch_embeddings = [x[layer] for x in batch_embeddings]
       self.elmo_embeddings.extend(batch_embeddings)
+
+  def init_bert(self, layer=12):
+    """Compute BERT embeddings in batch
+    @param layer = integer between 0 and 12
+    """
+    data_as_tokens = [' '.join([t['word'] for t in sentence]) for sentence in self.sentences]
+    self.bert_model = transformers.BertModel.from_pretrained(
+      'bert-base-uncased',
+      output_hidden_states=True
+    )
+    self.bert_tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
+
+    # Fix batching later, difficulties with variable length sequences in same batch.
+    BATCH_SIZE = 1
+    self.bert_embeddings = []
+    self.bert_tokens = []
+    for ix in tqdm.tqdm(range(0, len(data_as_tokens), BATCH_SIZE)):
+      batch = data_as_tokens[ix : ix+BATCH_SIZE]
+      self.bert_tokens.extend([self.bert_tokenizer.tokenize(sent) for sent in batch])
+      batch_input_ids = [self.bert_tokenizer.encode(sent) for sent in batch]
+      batch_embeddings = self.bert_model(torch.tensor(batch_input_ids))[2][layer]
+      self.bert_embeddings.extend(batch_embeddings.detach().numpy())
+
+  def get_bert_embeddings_for_lemma(self, lemma):
+    noun_embeddings = []
+    verb_embeddings = []
+
+    # Need to do a two-step matching process because the BERT embeddings correspond to
+    # WordPiece tokens, which don't always match up with our tokens.
+    for sentence_ix in range(len(self.sentences)):
+      token_list = self.sentences[sentence_ix]
+      wordpiece_tokens = self.bert_tokens[sentence_ix]
+      embeddings = self.bert_embeddings[sentence_ix]
+
+      assert len(wordpiece_tokens) == len(embeddings)
+
+      # Find word in the sentence that has the lemma
+      pos = None
+      lemma_form = None
+      for i in range(len(token_list)):
+        if token_list[i]['lemma'] == lemma:
+          if token_list[i]['pos'] in ['NOUN', 'VERB']:
+            pos = token_list[i]['pos']
+            lemma_form = token_list[i]['word']
+            break
+
+      # Get the embedding that matches token
+      for i in range(len(wordpiece_tokens)):
+        if wordpiece_tokens[i] == lemma_form:
+          token_embedding = embeddings[i]
+          if pos == 'NOUN':
+            noun_embeddings.append(token_embedding)
+            break
+          elif pos == 'VERB':
+            verb_embeddings.append(token_embedding)
+            break
+
+    noun_embeddings = np.vstack(noun_embeddings)
+    verb_embeddings = np.vstack(verb_embeddings)
+    return noun_embeddings, verb_embeddings
+
 
   def get_elmo_embeddings_for_lemma(self, lemma):
     noun_embeddings = []
@@ -52,8 +114,17 @@ class SemanticEmbedding:
     verb_embeddings = np.vstack(verb_embeddings)
     return noun_embeddings, verb_embeddings
 
-  def get_elmo_nv_similarity(self, lemma):
-    noun_embeddings, verb_embeddings = self.get_elmo_embeddings_for_lemma(lemma)
+
+  def get_contextual_nv_similarity(self, lemma, method):
+    """Compute cosine similarity between noun and verb embeddings, for a given lemma.
+    Method can be 'elmo' or 'bert'.
+    """
+    if method == 'elmo':
+      noun_embeddings, verb_embeddings = self.get_elmo_embeddings_for_lemma(lemma)
+    elif method == 'bert':
+      noun_embeddings, verb_embeddings = self.get_bert_embeddings_for_lemma(lemma)
+    else:
+      assert(False)
     
     avg_noun_embedding = np.mean(noun_embeddings, axis=0)
     avg_verb_embedding = np.mean(verb_embeddings, axis=0)
