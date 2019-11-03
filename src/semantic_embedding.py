@@ -39,23 +39,37 @@ class SemanticEmbedding:
     """Compute BERT embeddings in batch
     @param layer = integer between 0 and 12
     """
-    data_as_tokens = [' '.join([t['word'] for t in sentence]) for sentence in self.sentences]
+    data_as_sentences = [' '.join([t['word'] for t in sentence]) for sentence in self.sentences]
     self.bert_model = transformers.BertModel.from_pretrained(
       'bert-base-uncased',
       output_hidden_states=True
-    )
+    ).cuda()
     self.bert_tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
 
-    # Fix batching later, difficulties with variable length sequences in same batch.
-    BATCH_SIZE = 1
+    # Helper function for padding input for BERT so that we can batch it
+    # Truncate to 100 tokens at most to avoid memory problems
+    def convert_to_bert_input(sentences):
+      def pad_to_length(tokens, desired_len):
+        return tokens + (['[PAD]'] * (desired_len - len(tokens)))
+      bert_tokens = [self.bert_tokenizer.tokenize(sentence)[:100] for sentence in sentences]
+      max_len = max([len(tokens) for tokens in bert_tokens])
+      padded_tokens = [pad_to_length(tokens, max_len) for tokens in bert_tokens]
+      padded_ids = [self.bert_tokenizer.encode(tokens) for tokens in padded_tokens]
+      attn_mask = [[1 if token != '[PAD]' else 0 for token in tokens] for tokens in padded_tokens]
+      return padded_tokens, padded_ids, attn_mask
+
+    BATCH_SIZE = 16
     self.bert_embeddings = []
     self.bert_tokens = []
-    for ix in tqdm.tqdm(range(0, len(data_as_tokens), BATCH_SIZE)):
-      batch = data_as_tokens[ix : ix+BATCH_SIZE]
-      self.bert_tokens.extend([self.bert_tokenizer.tokenize(sent) for sent in batch])
-      batch_input_ids = [self.bert_tokenizer.encode(sent) for sent in batch]
-      batch_embeddings = self.bert_model(torch.tensor(batch_input_ids))[2][layer]
-      self.bert_embeddings.extend(batch_embeddings.detach().numpy())
+    for ix in tqdm.tqdm(range(0, len(data_as_sentences), BATCH_SIZE)):
+      batch_sentences = data_as_sentences[ix : ix+BATCH_SIZE]
+      padded_tokens, padded_ids, attn_mask = convert_to_bert_input(batch_sentences)
+      self.bert_tokens.extend(padded_tokens)
+      batch_embeddings = self.bert_model(
+        torch.tensor(padded_ids).cuda(),
+        attention_mask=torch.tensor(attn_mask).cuda()
+      )[2][layer]
+      self.bert_embeddings.extend(batch_embeddings.cpu().detach().numpy())
 
   def get_bert_embeddings_for_lemma(self, lemma):
     noun_embeddings = []

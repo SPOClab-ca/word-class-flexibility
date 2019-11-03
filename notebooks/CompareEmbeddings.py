@@ -66,16 +66,10 @@ annotation_df['nv_cosine_similarity'] = \
 # In[ ]:
 
 
+layer = 12
 embedder = src.semantic_embedding.SemanticEmbedding(sentences_with_relevant_lemmas)
-embedder.init_bert()
-#annotation_df['nv_cosine_similarity'] = \
-  #annotation_df.apply(lambda row: embedder.get_elmo_nv_similarity(row.lemma), axis=1)
-
-
-# In[14]:
-
-
-embedder.get_contextual_nv_similarity('work', method='bert')
+embedder.init_bert(layer=layer)
+annotation_df['nv_cosine_similarity'] =   annotation_df.apply(lambda row: embedder.get_contextual_nv_similarity(row.lemma, method='bert'), axis=1)
 
 
 # ## Embedder method: GloVe
@@ -87,16 +81,18 @@ annotation_df['nv_cosine_similarity'] = annotation_df.apply(
 )
 # ## Run NV similarity
 
-# In[ ]:
+# In[18]:
 
 
-sns.boxplot(annotation_df.mean_score, annotation_df.nv_cosine_similarity)
+corr = scipy.stats.spearmanr(annotation_df.mean_score, annotation_df.nv_cosine_similarity)[0]
 
 
-# In[ ]:
+# In[19]:
 
 
-scipy.stats.spearmanr(annotation_df.mean_score, annotation_df.nv_cosine_similarity)
+plot = sns.boxplot(annotation_df.mean_score, annotation_df.nv_cosine_similarity)
+plot.set_title('BERT layer %d, corr = %0.9f' % (layer, corr))
+plot.get_figure().savefig('figs/bert_%d.png' % layer)
 
 
 # In[ ]:

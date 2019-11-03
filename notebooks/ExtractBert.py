@@ -22,65 +22,62 @@ bert_tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
 # In[3]:
 
 
-STR = "My cat is called Xiaonuanhuo and she is warm and fluffy"
-bert_tokenizer.tokenize(STR)
+def convert_to_bert_input(sentences):
+  def pad_to_length(tokens, desired_len):
+    return tokens + (['[PAD]'] * (desired_len - len(tokens)))
+  bert_tokens = [bert_tokenizer.tokenize(sentence) for sentence in sentences]
+  max_len = max([len(tokens) for tokens in bert_tokens])
+  padded_tokens = [pad_to_length(tokens, max_len) for tokens in bert_tokens]
+  padded_ids = [bert_tokenizer.encode(tokens) for tokens in padded_tokens]
+  attn_mask = [[1 if token != '[PAD]' else 0 for token in tokens] for tokens in padded_tokens]
+  return padded_tokens, padded_ids, attn_mask
 
 
 # In[4]:
 
 
-input_ids = bert_tokenizer.encode(STR)
-input_ids
+STR1 = "My cat is called Xiaonuanhuo and she is warm and fluffy"
+STR2 = "this is a much shorter sentence"
+padded_tokens, padded_ids, attn_mask = convert_to_bert_input([STR1, STR2])
+print(padded_tokens)
+print(padded_ids)
+print(attn_mask)
 
 
 # In[5]:
 
 
-len(input_ids)
+bert_embeddings = bert_model(torch.tensor(padded_ids), attention_mask=torch.tensor(attn_mask))
+bert_embeddings[0]
 
 
 # In[6]:
 
 
-input_ids2 = bert_tokenizer.encode("this is a much shorter sentence")
-len(input_ids2)
-
-
-# In[7]:
-
-
-bert_embeddings = bert_model(torch.tensor([input_ids]))
-#bert_embeddings = bert_model(torch.tensor([input_ids, input_ids2]))
-bert_embeddings[0]
-
-
-# In[8]:
-
-
 bert_embeddings[0].shape
 
 
-# In[9]:
+# In[7]:
 
 
 # Final hidden layer, one for each token
 bert_embeddings[0].shape
 
 
-# In[10]:
+# In[8]:
 
 
 # Pooled layer
 bert_embeddings[1].shape
 
 
-# In[11]:
+# In[9]:
 
 
 len(bert_embeddings[2])
 
 
-# In[12]:
+# In[10]:
 
 
 # Nth hidden layer of BERT
