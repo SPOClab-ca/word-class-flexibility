@@ -1,5 +1,6 @@
 library(tidyverse)
 library(ggplot2)
+library(ggrepel)
 
 attestation_dates <- read_csv('attestation_dates.csv')
 sim_annotations <- read_csv('myself_plus_mturk.csv')
@@ -16,9 +17,19 @@ ggplot(attestation_dates, aes(x=gap)) +
 smaller_attestation_dates <- attestation_dates %>%
   merge(sim_annotations, by.x="word", by.y="lemma") %>%
   arrange(- noun_count - verb_count)
+smaller_attestation_dates$noun_ratio <-
+  smaller_attestation_dates$noun_count / (smaller_attestation_dates$noun_count + smaller_attestation_dates$verb_count)
+
+# Too many labels otherwise
+smaller_attestation_dates <- head(smaller_attestation_dates, 90)
 
 ggplot(smaller_attestation_dates, aes(x=noun_date, y=verb_date)) +
   theme_bw() +
-  geom_text(label=smaller_attestation_dates$word,
-            check_overlap=T, size=3.5) +
-  geom_abline(slope=1)
+  geom_point() +
+  geom_label_repel(label=smaller_attestation_dates$word,
+                  size=3,
+                  aes(color=smaller_attestation_dates$noun_ratio)) +
+  scale_color_gradient(name="Noun Ratio", low="red", high="darkgreen") +
+  geom_abline(slope=1) +
+  xlab("Noun Date") +
+  ylab("Verb Date")
