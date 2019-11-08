@@ -144,7 +144,6 @@
 144 drool 1802 1825 Vi-N 12 9 0 0
 145 dump 13 1300 1865 Vt-Vi-N 298 408 14 2 Vt-a,Vi-13..
 146 dupe 1912 1916 Vt-N 14 33 1 0
-147 dye 0 1000 1000 Vt-(Vi)-N 20 389 5 0 Vt-a,Vi(nd),N-c
 148 embrace 1386 1592 Vt-N 571 369 18 6 Vt-c
 149 enamel 1325 1463 Vt-N 0 319 3 1 Vt-c
 150 endeavour 1400 1581 1417 Vi-N-Vt 291 402 5 14 Vi-c

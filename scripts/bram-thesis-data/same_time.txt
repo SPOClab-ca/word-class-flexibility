@@ -67,7 +67,6 @@
 67 sin 825 825 1315 N-Vi-Vt 1217 78 67 10 N-c,Vi-c,Vt-c
 68 skateboard 1964 1964 N-Vi 60 3 0 0
 69 sleep 825 825 825 N-Vi/Vt 3734 3469 34 97 N-c,Vi-c,Vt-c
-70 smell 1175 1200 1175 N-Vt-Vi 2405 1105 27 43 N-c,Vt-c,Vi-c
 71 smoke 1000 1000 1000 N-Vi/Vt 2710 1119 33 26 N-c,Vi-c,Vt-c
 72 sorrow 888 888 1340 N-Vi-Vt 541 0 11 0 N-c,Vi-c,Vt-a
 73 spy 1250 1300 1250 N-Vt-Vi 555 125 9 4 N-c,Vt-c,Vi-a
