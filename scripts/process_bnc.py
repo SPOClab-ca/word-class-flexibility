@@ -3,7 +3,7 @@ Script to process XML files from BNC corpus and save data into Python Pickle for
 that's faster to read.
 
 Usage:
-  python src/preprocessing/process_bnc.py --bnc_dir=data/bnc/download/Texts --to=data/bnc/bnc.pkl
+  python scripts/process_bnc.py --bnc_dir=data/bnc/download/Texts --to=data/bnc/bnc.pkl
 """
 
 import argparse
