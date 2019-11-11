@@ -132,6 +132,8 @@ class SemanticEmbedding:
   def get_contextual_nv_similarity(self, lemma, method):
     """Compute cosine similarity between noun and verb embeddings, for a given lemma.
     Method can be 'elmo' or 'bert'.
+
+    Returns: (n/v similarity, n-variation, v-variation)
     """
     if method == 'elmo':
       noun_embeddings, verb_embeddings = self.get_elmo_embeddings_for_lemma(lemma)
@@ -142,13 +144,17 @@ class SemanticEmbedding:
     
     avg_noun_embedding = np.mean(noun_embeddings, axis=0)
     avg_verb_embedding = np.mean(verb_embeddings, axis=0)
-
-    return float(
+    nv_similarity = float(
       sklearn.metrics.pairwise.cosine_similarity(
         avg_noun_embedding[np.newaxis,:],
         avg_verb_embedding[np.newaxis,:]
       )
     )
+
+    n_variation = np.mean(np.sum((noun_embeddings - avg_noun_embedding)**2, axis=1))
+    v_variation = np.mean(np.sum((verb_embeddings - avg_verb_embedding)**2, axis=1))
+
+    return nv_similarity, n_variation, v_variation
 
   def get_glove_nv_similarity(self, lemma, context=8, include_self=False):
     """

@@ -58,10 +58,10 @@ embedder.init_bert(layer=12)
 
 # ## Compute embeddings of instances of a fixed lemma
 
-# In[4]:
+# In[39]:
 
 
-FIXED_LEMMA = "train"
+FIXED_LEMMA = "store"
 noun_embeddings, verb_embeddings = embedder.get_bert_embeddings_for_lemma(FIXED_LEMMA)
 print("Noun instances:", noun_embeddings.shape[0])
 print("Verb instances:", verb_embeddings.shape[0])
@@ -69,7 +69,7 @@ print("Verb instances:", verb_embeddings.shape[0])
 
 # ## Apply PCA and plot
 
-# In[5]:
+# In[40]:
 
 
 pca = sklearn.decomposition.PCA(n_components=2)
@@ -78,7 +78,7 @@ all_embeddings_df = pd.DataFrame({'x0': all_embeddings[:,0], 'x1': all_embedding
 all_embeddings_df['pos'] = ['noun'] * len(noun_embeddings) + ['verb'] * len(verb_embeddings)
 
 
-# In[6]:
+# In[41]:
 
 
 plot = sns.scatterplot(data=all_embeddings_df, x='x0', y='x1', hue='pos')
@@ -115,25 +115,26 @@ lemma_count_df = lemma_count_df[~lemma_count_df.lemma.isin(['go', 'will', 'may']
 print('Remaining lemmas:', len(lemma_count_df))
 
 
-# In[ ]:
+# In[51]:
 
 
-lemma_count_df['nv_cosine_similarity'] =   lemma_count_df.apply(lambda row: embedder.get_contextual_nv_similarity(row.lemma, method="bert"), axis=1)
+lemma_count_df[['nv_cosine_similarity', 'n_variation', 'v_variation']] =   lemma_count_df.apply(lambda row: embedder.get_contextual_nv_similarity(row.lemma, method="bert"),
+                       axis=1, result_type="expand")
 
 
-# In[29]:
+# In[54]:
 
 
 lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_similarity']]   .sort_values('nv_cosine_similarity').head(8)
 
 
-# In[30]:
+# In[55]:
 
 
 lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_similarity']]   .sort_values('nv_cosine_similarity', ascending=False).head(8)
 
 
-# In[31]:
+# In[56]:
 
 
 plot = sns.distplot(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_cosine_similarity, label='Base=N')
@@ -144,7 +145,7 @@ plot.set(title="Average Cosine Similarity between Noun/Verb Usage",
 plt.show()
 
 
-# In[32]:
+# In[57]:
 
 
 # T-test of difference in mean
