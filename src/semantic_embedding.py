@@ -151,8 +151,8 @@ class SemanticEmbedding:
       )
     )
 
-    n_variation = np.mean(np.sum((noun_embeddings - avg_noun_embedding)**2, axis=1))
-    v_variation = np.mean(np.sum((verb_embeddings - avg_verb_embedding)**2, axis=1))
+    n_variation = np.mean(np.sum((noun_embeddings - avg_noun_embedding)**2, axis=1)**0.5)
+    v_variation = np.mean(np.sum((verb_embeddings - avg_verb_embedding)**2, axis=1)**0.5)
 
     return nv_similarity, n_variation, v_variation
 
