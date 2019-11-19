@@ -1,3 +1,4 @@
+# Visualizations of attestation dates and corpus frequency
 library(tidyverse)
 library(ggplot2)
 library(ggrepel)
