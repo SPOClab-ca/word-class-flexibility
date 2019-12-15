@@ -20,22 +20,28 @@ class POSCorpus(object):
     pass
 
   @classmethod
-  def create_from_ud(cls, data_file_path):
+  def create_from_ud(cls, data_file_list):
     """Initialize corpus from a path to a file in conllu format"""
     corpus = POSCorpus()
-    with open(data_file_path, "r", encoding="utf-8") as data_file:
-      corpus.data = data_file.read()
-      corpus.data = conllu.parse(corpus.data)
-
     corpus.sentences = []
-    for token_list in corpus.data:
-      sentence = []
-      for token in token_list:
-        pos = token['upostag']
-        lemma = token['lemma']
-        word = token['form']
-        sentence.append({'word': word, 'lemma': lemma, 'pos': pos})
-      corpus.sentences.append(sentence)
+
+    for data_file_path in data_file_list:
+      with open(data_file_path, "r", encoding="utf-8") as data_file:
+        data = data_file.read()
+        data = conllu.parse(data)
+
+      for token_list in data:
+        sentence = []
+        for token in token_list:
+          pos = token['upostag']
+          lemma = token['lemma']
+          word = token['form']
+          # Sometimes the corpus doesn't have words, only underscores
+          if word == '_' or lemma == '_':
+            continue
+          sentence.append({'word': word, 'lemma': lemma, 'pos': pos})
+        if len(sentence) > 0:
+          corpus.sentences.append(sentence)
 
     return corpus
   
