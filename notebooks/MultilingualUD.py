@@ -49,13 +49,13 @@ ud_files['French'][:5]
 # In[4]:
 
 
-corpus = src.corpus.POSCorpus.create_from_ud(data_file_list=ud_files['English'])
+corpus = src.corpus.POSCorpus.create_from_ud(data_file_list=ud_files['French'])
 
 
 # In[5]:
 
 
-lemma_count_df = corpus.get_per_lemma_stats()
+lemma_count_df = corpus.get_lemma_stats_merge_method()
 lemma_count_df.sort_values('total_count', ascending=False).head(10)
 
 
@@ -103,7 +103,7 @@ def process_ud_language(args):
   corpus = src.corpus.POSCorpus.create_from_ud(data_file_list=ud_files[language_name])
   if len(corpus.sentences) == 0: return None
   total_tokens = sum([len(sentence) for sentence in corpus.sentences])
-  lemma_count_df = corpus.get_per_lemma_stats()
+  lemma_count_df = corpus.get_lemma_stats_merge_method()
   lemma_count_df = lemma_count_df[lemma_count_df['total_count'] >= 10].sort_values('total_count', ascending=False)
   noun_lemmas = len(lemma_count_df[lemma_count_df['majority_tag'] == 'NOUN'])
   verb_lemmas = len(lemma_count_df[lemma_count_df['majority_tag'] == 'VERB'])
@@ -126,20 +126,20 @@ results = [r for r in results if r is not None]
 all_language_stats = pd.DataFrame(results)
 
 
-# In[27]:
+# In[ ]:
 
 
 all_language_stats = all_language_stats.sort_values('tokens', ascending=False)
 all_language_stats
 
 
-# In[28]:
+# In[ ]:
 
 
 all_language_stats.to_csv('multi-language-ud.csv', index=False)
 
 
-# In[29]:
+# In[ ]:
 
 
 all_language_stats[(all_language_stats.noun_flexibility > 0.05) & (all_language_stats.verb_flexibility > 0.05)]
