@@ -12,7 +12,7 @@ import transformers
 import torch
 
 
-# In[ ]:
+# In[2]:
 
 
 bert_model = transformers.BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True)
@@ -28,7 +28,7 @@ def convert_to_bert_input(sentences):
   bert_tokens = [bert_tokenizer.tokenize(sentence) for sentence in sentences]
   max_len = max([len(tokens) for tokens in bert_tokens])
   padded_tokens = [pad_to_length(tokens, max_len) for tokens in bert_tokens]
-  padded_ids = [bert_tokenizer.encode(tokens) for tokens in padded_tokens]
+  padded_ids = [bert_tokenizer.encode(tokens, add_special_tokens=False) for tokens in padded_tokens]
   attn_mask = [[1 if token != '[PAD]' else 0 for token in tokens] for tokens in padded_tokens]
   return padded_tokens, padded_ids, attn_mask
 

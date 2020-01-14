@@ -40,7 +40,7 @@ corpus = src.corpus.POSCorpus.create_from_bnc_pickled(data_file_path=BNC_FILE)
 
 # ## Compute embeddings on random part of the corpus
 
-# In[ ]:
+# In[3]:
 
 
 # Take only 1M words out of 4M to make it run faster
@@ -58,7 +58,7 @@ embedder.init_bert(layer=12)
 
 # ## Compute embeddings of instances of a fixed lemma
 
-# In[39]:
+# In[4]:
 
 
 FIXED_LEMMA = "store"
@@ -69,7 +69,7 @@ print("Verb instances:", verb_embeddings.shape[0])
 
 # ## Apply PCA and plot
 
-# In[40]:
+# In[5]:
 
 
 pca = sklearn.decomposition.PCA(n_components=2)
@@ -78,7 +78,7 @@ all_embeddings_df = pd.DataFrame({'x0': all_embeddings[:,0], 'x1': all_embedding
 all_embeddings_df['pos'] = ['noun'] * len(noun_embeddings) + ['verb'] * len(verb_embeddings)
 
 
-# In[41]:
+# In[6]:
 
 
 plot = sns.scatterplot(data=all_embeddings_df, x='x0', y='x1', hue='pos')
@@ -103,7 +103,7 @@ for sentence_ix in range(len(sampled_sentences)):
     break
 # ## Cosine similarity between noun and verb usages
 
-# In[27]:
+# In[7]:
 
 
 lemma_count_df = corpus.get_per_lemma_stats()
@@ -115,26 +115,26 @@ lemma_count_df = lemma_count_df[~lemma_count_df.lemma.isin(['go', 'will', 'may']
 print('Remaining lemmas:', len(lemma_count_df))
 
 
-# In[51]:
+# In[8]:
 
 
 lemma_count_df[['nv_cosine_similarity', 'n_variation', 'v_variation']] =   lemma_count_df.apply(lambda row: embedder.get_contextual_nv_similarity(row.lemma, method="bert"),
                        axis=1, result_type="expand")
 
 
-# In[54]:
+# In[9]:
 
 
 lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_similarity']]   .sort_values('nv_cosine_similarity').head(8)
 
 
-# In[55]:
+# In[10]:
 
 
 lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_similarity']]   .sort_values('nv_cosine_similarity', ascending=False).head(8)
 
 
-# In[56]:
+# In[11]:
 
 
 plot = sns.distplot(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_cosine_similarity, label='Base=N')
@@ -145,7 +145,7 @@ plot.set(title="Average Cosine Similarity between Noun/Verb Usage",
 plt.show()
 
 
-# In[57]:
+# In[12]:
 
 
 # T-test of difference in mean

@@ -54,7 +54,7 @@ class SemanticEmbedding:
       bert_tokens = [self.bert_tokenizer.tokenize(sentence)[:100] for sentence in sentences]
       max_len = max([len(tokens) for tokens in bert_tokens])
       padded_tokens = [pad_to_length(tokens, max_len) for tokens in bert_tokens]
-      padded_ids = [self.bert_tokenizer.encode(tokens) for tokens in padded_tokens]
+      padded_ids = [self.bert_tokenizer.encode(tokens, add_special_tokens=False) for tokens in padded_tokens]
       attn_mask = [[1 if token != '[PAD]' else 0 for token in tokens] for tokens in padded_tokens]
       return padded_tokens, padded_ids, attn_mask
 
