@@ -70,6 +70,29 @@ class SemanticEmbedding:
         attention_mask=torch.tensor(attn_mask).cuda()
       )[2][layer]
       self.bert_embeddings.extend(batch_embeddings.cpu().detach().numpy())
+  
+
+  # Check if wordpiece matches with a word at position i
+  # Eg: ['my', 'cat', 'is', 'named', 'xiao', '##nu', '##an', '##hu', '##o']
+  # Word:                            'xiaonuanhuo'
+  def _wordpiece_matches(self, wordpiece_tokens, word, i):
+    if word == None:
+      return False
+
+    word = word.lower()
+    wordpiece_tokens = [wp.lower() for wp in wordpiece_tokens]
+
+    if not word.startswith(wordpiece_tokens[i]):
+      return False
+
+    # Get the whole word, then compare
+    whole_word = wordpiece_tokens[i]
+    for j in range(i+1, len(wordpiece_tokens)):
+      if wordpiece_tokens[j].startswith('##'):
+        whole_word += wordpiece_tokens[j][2:]
+
+    return word == whole_word
+
 
   def get_bert_embeddings_for_lemma(self, lemma):
     noun_embeddings = []
@@ -96,7 +119,7 @@ class SemanticEmbedding:
 
       # Get the embedding that matches token
       for i in range(len(wordpiece_tokens)):
-        if wordpiece_tokens[i] == lemma_form:
+        if self._wordpiece_matches(wordpiece_tokens, lemma_form, i):
           token_embedding = embeddings[i]
           if pos == 'NOUN':
             noun_embeddings.append(token_embedding)
