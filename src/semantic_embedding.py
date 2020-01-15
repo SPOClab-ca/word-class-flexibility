@@ -35,16 +35,17 @@ class SemanticEmbedding:
       batch_embeddings = [x[layer] for x in batch_embeddings]
       self.elmo_embeddings.extend(batch_embeddings)
 
-  def init_bert(self, layer=12):
+  def init_bert(self, model_name='bert-base-uncased', layer=12):
     """Compute BERT embeddings in batch
+    @param model_name = either bert-base-uncased or bert-base-multilingual-cased
     @param layer = integer between 0 and 12
     """
     data_as_sentences = [' '.join([t['word'] for t in sentence]) for sentence in self.sentences]
     self.bert_model = transformers.BertModel.from_pretrained(
-      'bert-base-uncased',
+      model_name,
       output_hidden_states=True
     ).cuda()
-    self.bert_tokenizer = transformers.BertTokenizer.from_pretrained('bert-base-uncased')
+    self.bert_tokenizer = transformers.BertTokenizer.from_pretrained(model_name)
 
     # Helper function for padding input for BERT so that we can batch it
     # Truncate to 100 tokens at most to avoid memory problems
