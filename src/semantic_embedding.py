@@ -35,43 +35,33 @@ class SemanticEmbedding:
       batch_embeddings = [x[layer] for x in batch_embeddings]
       self.elmo_embeddings.extend(batch_embeddings)
 
+
   def init_bert(self, model_name='bert-base-uncased', layer=12):
-    """Compute BERT embeddings in batch
+    """Initialize BERT model (but don't compute anything)
     @param model_name = either bert-base-uncased or bert-base-multilingual-cased
     @param layer = integer between 0 and 12
     """
-    data_as_sentences = [' '.join([t['word'] for t in sentence]) for sentence in self.sentences]
+    self.bert_layer = layer
     self.bert_model = transformers.BertModel.from_pretrained(
       model_name,
       output_hidden_states=True
     ).cuda()
     self.bert_tokenizer = transformers.BertTokenizer.from_pretrained(model_name)
 
-    # Helper function for padding input for BERT so that we can batch it
-    # Truncate to 100 tokens at most to avoid memory problems
-    def convert_to_bert_input(sentences):
-      def pad_to_length(tokens, desired_len):
-        return tokens + (['[PAD]'] * (desired_len - len(tokens)))
-      bert_tokens = [self.bert_tokenizer.tokenize(sentence)[:100] for sentence in sentences]
-      max_len = max([len(tokens) for tokens in bert_tokens])
-      padded_tokens = [pad_to_length(tokens, max_len) for tokens in bert_tokens]
-      padded_ids = [self.bert_tokenizer.encode(tokens, add_special_tokens=False) for tokens in padded_tokens]
-      attn_mask = [[1 if token != '[PAD]' else 0 for token in tokens] for tokens in padded_tokens]
-      return padded_tokens, padded_ids, attn_mask
-
-    BATCH_SIZE = 16
-    self.bert_embeddings = []
-    self.bert_tokens = []
-    for ix in tqdm.tqdm(range(0, len(data_as_sentences), BATCH_SIZE)):
-      batch_sentences = data_as_sentences[ix : ix+BATCH_SIZE]
-      padded_tokens, padded_ids, attn_mask = convert_to_bert_input(batch_sentences)
-      self.bert_tokens.extend(padded_tokens)
-      batch_embeddings = self.bert_model(
-        torch.tensor(padded_ids).cuda(),
-        attention_mask=torch.tensor(attn_mask).cuda()
-      )[2][layer]
-      self.bert_embeddings.extend(batch_embeddings.cpu().detach().numpy())
   
+  # Helper function for padding input for BERT so that we can batch it
+  # Truncate to 100 tokens at most to avoid memory problems
+  def _convert_to_bert_input(self, batch_tokens):
+    def pad_to_length(tokens, desired_len):
+      return tokens + (['[PAD]'] * (desired_len - len(tokens)))
+    sentences = [' '.join(t['word'] for t in sentence_tokens) for sentence_tokens in batch_tokens]
+    bert_tokens = [self.bert_tokenizer.tokenize(sentence)[:100] for sentence in sentences]
+    max_len = max([len(tokens) for tokens in bert_tokens])
+    padded_tokens = [pad_to_length(tokens, max_len) for tokens in bert_tokens]
+    padded_ids = [self.bert_tokenizer.encode(tokens, add_special_tokens=False) for tokens in padded_tokens]
+    attn_mask = [[1 if token != '[PAD]' else 0 for token in tokens] for tokens in padded_tokens]
+    return padded_tokens, padded_ids, attn_mask
+
 
   # Check if wordpiece matches with a word at position i
   # Eg: ['my', 'cat', 'is', 'named', 'xiao', '##nu', '##an', '##hu', '##o']
@@ -91,43 +81,65 @@ class SemanticEmbedding:
     for j in range(i+1, len(wordpiece_tokens)):
       if wordpiece_tokens[j].startswith('##'):
         whole_word += wordpiece_tokens[j][2:]
+      else:
+        break
 
     return word == whole_word
 
 
   def get_bert_embeddings_for_lemma(self, lemma):
+    # Gather sentences that are relevant
+    relevant_sentences = []
+    for sentence in self.sentences:
+      if any([t['lemma'] == lemma for t in sentence]):
+        relevant_sentences.append(sentence)
+
+    print('Processing lemma: %s (%d instances)' % (lemma, len(relevant_sentences)))
+
     noun_embeddings = []
     verb_embeddings = []
 
-    # Need to do a two-step matching process because the BERT embeddings correspond to
-    # WordPiece tokens, which don't always match up with our tokens.
-    for sentence_ix in range(len(self.sentences)):
-      token_list = self.sentences[sentence_ix]
-      wordpiece_tokens = self.bert_tokens[sentence_ix]
-      embeddings = self.bert_embeddings[sentence_ix]
+    # Compute BERT embeddings in batches
+    BATCH_SIZE = 32
+    for batch_ix in range(0, len(relevant_sentences), BATCH_SIZE):
+      batch_sentences = relevant_sentences[batch_ix : batch_ix+BATCH_SIZE]
+      batch_tokens, padded_ids, attn_mask = self._convert_to_bert_input(batch_sentences)
+      batch_embeddings = self.bert_model(
+        torch.tensor(padded_ids).cuda(),
+        attention_mask=torch.tensor(attn_mask).cuda()
+      )[2][self.bert_layer]
+      batch_embeddings = batch_embeddings.cpu().detach().numpy()
 
-      assert len(wordpiece_tokens) == len(embeddings)
+      # Process one sentence at a time.
+      # Need to do a two-step matching process because the BERT embeddings correspond to
+      # WordPiece tokens, which don't always match up with our tokens.
+      for ix in range(len(batch_tokens)):
+        token_list = batch_sentences[ix]
+        wordpiece_tokens = batch_tokens[ix]
+        embeddings = batch_embeddings[ix]
 
-      # Find word in the sentence that has the lemma
-      pos = None
-      lemma_form = None
-      for i in range(len(token_list)):
-        if token_list[i]['lemma'] == lemma:
-          if token_list[i]['pos'] in ['NOUN', 'VERB']:
-            pos = token_list[i]['pos']
-            lemma_form = token_list[i]['word']
-            break
+        assert len(wordpiece_tokens) == len(embeddings)
 
-      # Get the embedding that matches token
-      for i in range(len(wordpiece_tokens)):
-        if self._wordpiece_matches(wordpiece_tokens, lemma_form, i):
-          token_embedding = embeddings[i]
-          if pos == 'NOUN':
-            noun_embeddings.append(token_embedding)
-            break
-          elif pos == 'VERB':
-            verb_embeddings.append(token_embedding)
-            break
+        # Find word in the sentence that has the lemma
+        pos = None
+        lemma_form = None
+        for i in range(len(token_list)):
+          if token_list[i]['lemma'] == lemma:
+            if token_list[i]['pos'] in ['NOUN', 'VERB']:
+              pos = token_list[i]['pos']
+              lemma_form = token_list[i]['word']
+              break
+
+        # Get the embedding that matches token
+        for i in range(len(wordpiece_tokens)):
+          if self._wordpiece_matches(wordpiece_tokens, lemma_form, i):
+            token_embedding = embeddings[i]
+            if pos == 'NOUN':
+              noun_embeddings.append(token_embedding)
+              break
+            elif pos == 'VERB':
+              verb_embeddings.append(token_embedding)
+              break
 
     noun_embeddings = np.vstack(noun_embeddings)
     verb_embeddings = np.vstack(verb_embeddings)

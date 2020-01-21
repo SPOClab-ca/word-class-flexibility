@@ -115,7 +115,7 @@ lemma_count_df = lemma_count_df[~lemma_count_df.lemma.isin(['go', 'will', 'may']
 print('Remaining lemmas:', len(lemma_count_df))
 
 
-# In[8]:
+# In[ ]:
 
 
 lemma_count_df[['nv_cosine_similarity', 'n_variation', 'v_variation']] =   lemma_count_df.apply(lambda row: embedder.get_contextual_nv_similarity(row.lemma, method="bert"),
