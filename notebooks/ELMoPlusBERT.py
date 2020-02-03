@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import sklearn.decomposition
 import random
+import scipy.stats
 
 import src.corpus
 import src.semantic_embedding
@@ -53,7 +54,7 @@ for ix in random_indices:
   sampled_sentences.append(corpus.sentences[ix])
   
 embedder = src.semantic_embedding.SemanticEmbedding(sampled_sentences)
-embedder.init_bert(layer=12)
+embedder.init_bert(model_name='bert-base-uncased', layer=12)
 
 
 # ## Compute embeddings of instances of a fixed lemma
@@ -125,14 +126,16 @@ lemma_count_df[['nv_cosine_similarity', 'n_variation', 'v_variation']] =   lemma
 # In[9]:
 
 
-lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_similarity']]   .sort_values('nv_cosine_similarity').head(8)
+lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_similarity', 'n_variation', 'v_variation']]   .sort_values('nv_cosine_similarity').head(8)
 
 
 # In[10]:
 
 
-lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_similarity']]   .sort_values('nv_cosine_similarity', ascending=False).head(8)
+lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_similarity', 'n_variation', 'v_variation']]   .sort_values('nv_cosine_similarity', ascending=False).head(8)
 
+
+# ## Difference in similarity when base is noun vs verb
 
 # In[11]:
 
@@ -148,8 +151,43 @@ plt.show()
 # In[12]:
 
 
+print('Mean cosine similarity when Base=N:', np.mean(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_cosine_similarity))
+print('Mean cosine similarity when Base=V:', np.mean(lemma_count_df[lemma_count_df.majority_tag == 'VERB'].nv_cosine_similarity))
+
+
+# In[13]:
+
+
 # T-test of difference in mean
-import scipy.stats
 scipy.stats.ttest_ind(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_cosine_similarity,
                       lemma_count_df[lemma_count_df.majority_tag == 'VERB'].nv_cosine_similarity)
+
+
+# ## Difference in variation between majority and minority class
+
+# In[18]:
+
+
+majority_variation = np.where(lemma_count_df.majority_tag == 'NOUN', lemma_count_df.n_variation, lemma_count_df.v_variation)
+minority_variation = np.where(lemma_count_df.majority_tag == 'NOUN', lemma_count_df.v_variation, lemma_count_df.n_variation)
+plot = sns.distplot(majority_variation, label='Majority')
+plot = sns.distplot(minority_variation, label='Minority')
+plt.legend()
+plot.set(title="Semantic variation within majority and minority POS class",
+         xlabel="Standard deviation", ylabel="Density")
+plt.show()
+
+
+# In[16]:
+
+
+print('Mean majority variation:', np.mean(majority_variation))
+print('Mean minority variation:', np.mean(minority_variation))
+
+
+# In[17]:
+
+
+# Paired t-test for difference
+scipy.stats.ttest_rel(majority_variation, minority_variation)
 
