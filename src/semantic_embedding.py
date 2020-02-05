@@ -32,12 +32,13 @@ class SemanticEmbedding:
     @param model_name = either bert-base-uncased or bert-base-multilingual-cased
     @param layer = integer between 0 and 12
     """
+    self.model_name = model_name
     self.bert_layer = layer
-    self.bert_model = transformers.BertModel.from_pretrained(
+    self.bert_model = transformers.AutoModel.from_pretrained(
       model_name,
       output_hidden_states=True
     ).cuda()
-    self.bert_tokenizer = transformers.BertTokenizer.from_pretrained(model_name)
+    self.bert_tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
 
   
   # Helper function for padding input for BERT so that we can batch it
@@ -78,6 +79,18 @@ class SemanticEmbedding:
     return word == whole_word
 
 
+  # Convert XLM tokens to BERT-like format. Example:
+  # BERT: ['util', '##iza', '##tion']
+  # XLM:  ['_util', 'iza', 'tion']
+  def _convert_xlm_token_to_bert(self, tok):
+    if tok[0] == '[':
+      return tok
+    if tok[0] == '▁':
+      return tok[1:]
+    else:
+      return '##' + tok
+
+
   def get_bert_embeddings_for_lemma(self, lemma):
     # Gather sentences that are relevant
     relevant_sentences = []
@@ -108,6 +121,9 @@ class SemanticEmbedding:
         token_list = batch_sentences[ix]
         wordpiece_tokens = batch_tokens[ix]
         embeddings = batch_embeddings[ix]
+
+        if self.model_name.startswith('xlm'):
+          wordpiece_tokens = [self._convert_xlm_token_to_bert(t) for t in wordpiece_tokens]
 
         assert len(wordpiece_tokens) == len(embeddings)
 
