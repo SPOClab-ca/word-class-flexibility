@@ -32,11 +32,12 @@ get_ipython().run_line_magic('autoreload', '2')
 # In[2]:
 
 
-#UD_FILE = "../data/en_ewt-ud-train.conllu"
-#corpus = src.corpus.POSCorpus.create_from_ud(data_file_path=UD_FILE)
+UD_PATH = '../data/ud_all/ud-treebanks-v2.5/'
+ud_files = src.corpus.group_treebanks_by_language(UD_PATH)
+corpus = src.corpus.POSCorpus.create_from_ud(data_file_list=ud_files['English'])
 
-BNC_FILE = "../data/bnc/bnc.pkl"
-corpus = src.corpus.POSCorpus.create_from_bnc_pickled(data_file_path=BNC_FILE)
+#BNC_FILE = "../data/bnc/bnc.pkl"
+#corpus = src.corpus.POSCorpus.create_from_bnc_pickled(data_file_path=BNC_FILE)
 
 
 # ## Compute embeddings on random part of the corpus
@@ -54,7 +55,7 @@ for ix in random_indices:
   sampled_sentences.append(corpus.sentences[ix])
   
 embedder = src.semantic_embedding.SemanticEmbedding(sampled_sentences)
-embedder.init_bert(model_name='bert-base-uncased', layer=12)
+embedder.init_bert(model_name='bert-base-multilingual-cased', layer=12)
 
 
 # ## Compute embeddings of instances of a fixed lemma
@@ -110,10 +111,12 @@ for sentence_ix in range(len(sampled_sentences)):
 lemma_count_df = corpus.get_per_lemma_stats()
 
 # Filter: must have at least [x] noun and [x] verb usages
-lemma_count_df = lemma_count_df[(lemma_count_df['noun_count'] >= 80) & (lemma_count_df['verb_count'] >= 80)]
+lemma_count_df = lemma_count_df[(lemma_count_df['noun_count'] >= 30) & (lemma_count_df['verb_count'] >= 30)]
 lemma_count_df = lemma_count_df.sort_values('total_count', ascending=False)
-lemma_count_df = lemma_count_df[~lemma_count_df.lemma.isin(['go', 'will', 'may'])]
+#lemma_count_df = lemma_count_df[~lemma_count_df.lemma.isin(['go', 'will', 'may'])]
 print('Remaining lemmas:', len(lemma_count_df))
+print('Noun lemmas:', len(lemma_count_df[lemma_count_df.majority_tag == 'NOUN']))
+print('Verb lemmas:', len(lemma_count_df[lemma_count_df.majority_tag == 'VERB']))
 
 
 # In[ ]:
@@ -165,7 +168,7 @@ scipy.stats.ttest_ind(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_c
 
 # ## Difference in variation between majority and minority class
 
-# In[18]:
+# In[14]:
 
 
 majority_variation = np.where(lemma_count_df.majority_tag == 'NOUN', lemma_count_df.n_variation, lemma_count_df.v_variation)
@@ -178,14 +181,14 @@ plot.set(title="Semantic variation within majority and minority POS class",
 plt.show()
 
 
-# In[16]:
+# In[15]:
 
 
 print('Mean majority variation:', np.mean(majority_variation))
 print('Mean minority variation:', np.mean(minority_variation))
 
 
-# In[17]:
+# In[16]:
 
 
 # Paired t-test for difference

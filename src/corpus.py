@@ -4,6 +4,19 @@ import numpy as np
 import pandas as pd
 import conllu
 import pickle
+import os
+import glob
+
+
+# Crawl the UD direrctory and get a list of all conllu files, grouped by language
+def group_treebanks_by_language(ud_path):
+  ud_files = defaultdict(list)
+  for ud_corpus_name in os.listdir(ud_path):
+    language_name = ud_corpus_name[3:].split('-')[0].replace('_', ' ')
+    for conllu_file in glob.glob(ud_path + ud_corpus_name + '/*.conllu'):
+      ud_files[language_name].append(conllu_file)
+  return ud_files
+
 
 
 class POSCorpus(object):
