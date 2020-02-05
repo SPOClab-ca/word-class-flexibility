@@ -1,23 +1,14 @@
 import numpy as np
 import pandas as pd
 import allennlp.commands.elmo
-from gensim.models import KeyedVectors
 import sklearn.metrics
 import torch
 import transformers
 import tqdm
 
-GLOVE_LOCATION = '/h/bai/moar/snap/data/glove.840B.300d.txt'
-
 class SemanticEmbedding:
   def __init__(self, sentences):
     self.sentences = sentences
-
-  def init_glove(self, limit=100000):
-    """Load GloVe vectors
-    @param limit = max number of words to load
-    """
-    self.glove_vectors = KeyedVectors.load_word2vec_format(GLOVE_LOCATION, limit=limit)
 
   def init_elmo(self, layer=2):
     """Init here because batching required for efficiency
@@ -177,6 +168,11 @@ class SemanticEmbedding:
       noun_embeddings, verb_embeddings = self.get_bert_embeddings_for_lemma(lemma)
     else:
       assert(False)
+
+    # Sample majority class to be the same size
+    minority_size = min(noun_embeddings.shape[0], verb_embeddings.shape[0])
+    noun_embeddings = noun_embeddings[np.random.choice(noun_embeddings.shape[0], minority_size, replace=False), :]
+    verb_embeddings = verb_embeddings[np.random.choice(verb_embeddings.shape[0], minority_size, replace=False), :]
     
     avg_noun_embedding = np.mean(noun_embeddings, axis=0)
     avg_verb_embedding = np.mean(verb_embeddings, axis=0)
@@ -191,59 +187,3 @@ class SemanticEmbedding:
     v_variation = np.mean(np.sum((verb_embeddings - avg_verb_embedding)**2, axis=1)**0.5)
 
     return nv_similarity, n_variation, v_variation
-
-  def get_glove_nv_similarity(self, lemma, context=8, include_self=False):
-    """
-    @param context = window of context around word to use
-    @param include_self = whether to include the lemma itself
-    """
-    noun_embeddings = []
-    verb_embeddings = []
-
-    for sentence_ix in range(len(self.sentences)):
-      token_list = self.sentences[sentence_ix]
-
-      # Find index of lemma
-      lemma_ix = None
-      lemma_pos = None
-      for ix, token in enumerate(token_list):
-        if token['lemma'] == lemma:
-          lemma_ix = ix
-          lemma_pos = token['pos']
-          break
-      if lemma_ix is None:
-        continue
-
-      context_embeddings = []
-      for ix, token in enumerate(token_list):
-        # Decide if this token is in context window
-        dist_to_lemma = abs(ix - lemma_ix)
-        if include_self:
-          is_in_context = dist_to_lemma <= context
-        else:
-          is_in_context = (ix != lemma_ix) and (dist_to_lemma <= context)
-
-        if is_in_context:
-          try:
-            context_embeddings.append(self.glove_vectors[token['word'].lower()])
-          except Exception:
-            pass
-      if len(context_embeddings) > 0:
-        context_embeddings = np.vstack(context_embeddings)
-        if lemma_pos == 'NOUN':
-          noun_embeddings.append(np.mean(context_embeddings, axis=0))
-        elif lemma_pos == 'VERB':
-          verb_embeddings.append(np.mean(context_embeddings, axis=0))
-
-    noun_embeddings = np.vstack(noun_embeddings)
-    verb_embeddings = np.vstack(verb_embeddings)
-
-    avg_noun_embedding = np.mean(noun_embeddings, axis=0)
-    avg_verb_embedding = np.mean(verb_embeddings, axis=0)
-
-    return float(
-      sklearn.metrics.pairwise.cosine_similarity(
-        avg_noun_embedding[np.newaxis,:],
-        avg_verb_embedding[np.newaxis,:]
-      )
-    )
