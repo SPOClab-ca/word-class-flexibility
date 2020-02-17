@@ -27,17 +27,17 @@ get_ipython().run_line_magic('load_ext', 'autoreload')
 get_ipython().run_line_magic('autoreload', '2')
 
 
-# ## Parse the corpus
+# ### Parse the corpus
 
 # In[2]:
 
 
-UD_PATH = '../data/ud_all/ud-treebanks-v2.5/'
-ud_files = src.corpus.group_treebanks_by_language(UD_PATH)
-corpus = src.corpus.POSCorpus.create_from_ud(data_file_list=ud_files['English'])
+#UD_PATH = '../data/ud_all/ud-treebanks-v2.5/'
+#ud_files = src.corpus.group_treebanks_by_language(UD_PATH)
+#corpus = src.corpus.POSCorpus.create_from_ud(data_file_list=ud_files['English'])
 
-#BNC_FILE = "../data/bnc/bnc.pkl"
-#corpus = src.corpus.POSCorpus.create_from_bnc_pickled(data_file_path=BNC_FILE)
+BNC_FILE = "../data/bnc/bnc.pkl"
+corpus = src.corpus.POSCorpus.create_from_bnc_pickled(data_file_path=BNC_FILE)
 
 
 # ## Compute embeddings on random part of the corpus
@@ -55,54 +55,55 @@ for ix in random_indices:
   sampled_sentences.append(corpus.sentences[ix])
   
 embedder = src.semantic_embedding.SemanticEmbedding(sampled_sentences)
-embedder.init_bert(model_name='bert-base-multilingual-cased', layer=12)
+embedder.init_bert(model_name='xlm-roberta-base', layer=12)
 
 
 # ## Compute embeddings of instances of a fixed lemma
 
-# In[4]:
+# In[7]:
 
 
-FIXED_LEMMA = "store"
-noun_embeddings, verb_embeddings = embedder.get_bert_embeddings_for_lemma(FIXED_LEMMA)
+FIXED_LEMMA = "train"
+noun_embeddings, verb_embeddings, noun_indices, verb_indices = embedder.get_bert_embeddings_for_lemma(FIXED_LEMMA)
 print("Noun instances:", noun_embeddings.shape[0])
 print("Verb instances:", verb_embeddings.shape[0])
 
 
 # ## Apply PCA and plot
 
-# In[5]:
+# In[8]:
 
 
 pca = sklearn.decomposition.PCA(n_components=2)
 all_embeddings = pca.fit_transform(np.vstack([noun_embeddings, verb_embeddings]))
 all_embeddings_df = pd.DataFrame({'x0': all_embeddings[:,0], 'x1': all_embeddings[:,1]})
 all_embeddings_df['pos'] = ['noun'] * len(noun_embeddings) + ['verb'] * len(verb_embeddings)
+all_embeddings_df['sentence_ix'] = noun_indices + verb_indices
 
 
-# In[6]:
+# In[9]:
 
 
-plot = sns.scatterplot(data=all_embeddings_df, x='x0', y='x1', hue='pos')
+plot = sns.scatterplot(data=all_embeddings_df.sample(frac=1), x='x0', y='x1', hue='pos')
 plot.set(title="Contextual embeddings for lemma: '%s'" % FIXED_LEMMA)
 plt.show()
 
 
 # ## Utility to inspect what it's capturing
+
+# In[11]:
+
+
 num_printed = 0
-for sentence_ix in range(len(sampled_sentences)):
-  token_list = sampled_sentences[sentence_ix]
-  embeddings = embedder.bert_embeddings[sentence_ix]
-  for i in range(len(token_list)):
-    if token_list[i]['lemma'] == FIXED_LEMMA:
-      v = pca.transform(embeddings[i][np.newaxis, :])[0]
-      if 1 < v[0] < 2: # <- Put whatever condition here
-        print(v)
-        print(' '.join([t['word'] for t in token_list]))
-        print()
-        num_printed += 1
+for _, row in all_embeddings_df.iterrows():
+  if row.x0 > 14: # <- Put whatever condition here
+    sent = sampled_sentences[row.sentence_ix]
+    print("POS=" + row.pos + ";", ' '.join([t['word'] for t in sent]))
+    num_printed += 1
   if num_printed > 10:
     break
+
+
 # ## Cosine similarity between noun and verb usages
 
 # In[7]:

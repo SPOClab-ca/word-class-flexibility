@@ -94,14 +94,18 @@ class SemanticEmbedding:
   def get_bert_embeddings_for_lemma(self, lemma):
     # Gather sentences that are relevant
     relevant_sentences = []
-    for sentence in self.sentences:
+    sentence_indices = []
+    for sentence_ix, sentence in enumerate(self.sentences):
       if any([t['lemma'] == lemma for t in sentence]):
+        sentence_indices.append(sentence_ix)
         relevant_sentences.append(sentence)
 
     print('Processing lemma: %s (%d instances)' % (lemma, len(relevant_sentences)))
 
     noun_embeddings = []
     verb_embeddings = []
+    noun_indices = []
+    verb_indices = []
 
     # Compute BERT embeddings in batches
     BATCH_SIZE = 32
@@ -121,6 +125,7 @@ class SemanticEmbedding:
         token_list = batch_sentences[ix]
         wordpiece_tokens = batch_tokens[ix]
         embeddings = batch_embeddings[ix]
+        original_sentence_ix = sentence_indices[batch_ix + ix]
 
         if self.model_name.startswith('xlm'):
           wordpiece_tokens = [self._convert_xlm_token_to_bert(t) for t in wordpiece_tokens]
@@ -143,14 +148,16 @@ class SemanticEmbedding:
             token_embedding = embeddings[i]
             if pos == 'NOUN':
               noun_embeddings.append(token_embedding)
+              noun_indices.append(original_sentence_ix)
               break
             elif pos == 'VERB':
               verb_embeddings.append(token_embedding)
+              verb_indices.append(original_sentence_ix)
               break
 
     noun_embeddings = np.vstack(noun_embeddings)
     verb_embeddings = np.vstack(verb_embeddings)
-    return noun_embeddings, verb_embeddings
+    return noun_embeddings, verb_embeddings, noun_indices, verb_indices
 
 
   def get_elmo_embeddings_for_lemma(self, lemma):
@@ -181,7 +188,7 @@ class SemanticEmbedding:
     if method == 'elmo':
       noun_embeddings, verb_embeddings = self.get_elmo_embeddings_for_lemma(lemma)
     elif method == 'bert':
-      noun_embeddings, verb_embeddings = self.get_bert_embeddings_for_lemma(lemma)
+      noun_embeddings, verb_embeddings, _, _ = self.get_bert_embeddings_for_lemma(lemma)
     else:
       assert(False)
 
