@@ -1,6 +1,5 @@
 from collections import defaultdict, Counter
 from disjoint_set import DisjointSet
-import functools
 import numpy as np
 import pandas as pd
 import conllu
@@ -124,7 +123,6 @@ class POSCorpus(object):
 
   # Name of the group is the most frequent lemma in the group
   # Eg: [voyage, voyages, voyagerai, ...] should map to the same lemma
-  @functools.lru_cache(maxsize=1000)
   def get_merged_lemma_for_word(self, word):
     if self.lemma_merge_ds is None:
       self._setup_lemma_merges()
