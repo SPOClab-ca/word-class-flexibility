@@ -117,7 +117,13 @@ all_language_stats = pd.DataFrame(results)
 all_language_stats = all_language_stats.sort_values('tokens', ascending=False)
 all_language_stats
 
+
+# In[ ]:
+
+
 all_language_stats.to_csv('multi-language-ud.csv', index=False)
+
+
 # In[ ]:
 
 
