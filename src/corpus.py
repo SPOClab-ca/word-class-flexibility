@@ -112,27 +112,26 @@ class POSCorpus(object):
       self.lemma_merge_ds.union(word, lemma)
 
     # Group words that share the same lemma
-    self.lemma_counter = Counter()
+    lemma_counter = Counter()
     for _, lemma, _ in self._iterate_words():
-      self.lemma_counter[lemma] += 1
+      lemma_counter[lemma] += 1
 
-    self.lemma_groups = defaultdict(set)
+    lemma_groups = defaultdict(set)
     for word, lemma, _ in self._iterate_words():
-      self.lemma_groups[self.lemma_merge_ds.find(word)].add(word)
+      lemma_groups[self.lemma_merge_ds.find(word)].add(word)
 
-
-  # Name of the group is the most frequent lemma in the group
-  # Eg: [voyage, voyages, voyagerai, ...] should map to the same lemma
-  def get_merged_lemma_for_word(self, word):
-    if self.lemma_merge_ds is None:
-      self._setup_lemma_merges()
-
-    maxn, maxw = 0, None
-    for w in self.lemma_groups[self.lemma_merge_ds.find(word)]:
-      if self.lemma_counter[w] > maxn:
-        maxn = self.lemma_counter[w]
-        maxw = w
-    return maxw
+    # Name of the group is the most frequent lemma in the group
+    # Eg: [voyage, voyages, voyagerai, ...] should map to the same lemma
+    self.merged_lemma_table = {}
+    for word, lemma, _ in self._iterate_words():
+      if word in self.merged_lemma_table:
+        continue
+      maxn, maxw = 0, None
+      for w in lemma_groups[self.lemma_merge_ds.find(word)]:
+        if lemma_counter[w] > maxn:
+          maxn = lemma_counter[w]
+          maxw = w
+      self.merged_lemma_table[word] = maxw
 
 
   def get_lemma_stats_merge_method(self, flexibility_threshold=0.05):
@@ -150,7 +149,7 @@ class POSCorpus(object):
     for lemma, lemma_occurrences in lemma_forms.items():
       noun_count = len([word for (pos, word) in lemma_occurrences if pos == 'NOUN'])
       verb_count = len([word for (pos, word) in lemma_occurrences if pos == 'VERB'])
-      lemma_count_df.append({'lemma': self.get_merged_lemma_for_word(lemma), 'noun_count': noun_count, 'verb_count': verb_count})
+      lemma_count_df.append({'lemma': self.merged_lemma_table[lemma], 'noun_count': noun_count, 'verb_count': verb_count})
     lemma_count_df = pd.DataFrame(lemma_count_df)
 
     lemma_count_df = lemma_count_df[lemma_count_df['noun_count'] + lemma_count_df['verb_count'] > 0]

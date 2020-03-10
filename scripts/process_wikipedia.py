@@ -57,6 +57,7 @@ lang_name_full = LANGUAGES[args.lang]
 ud_treebanks = src.corpus.group_treebanks_by_language(args.ud_dir)[lang_name_full]
 print('Processing UD:', lang_name_full)
 ud_corpus = src.corpus.POSCorpus.create_from_ud(data_file_list=ud_treebanks)
+ud_corpus._setup_lemma_merges()
 
 # Process Wikipedia
 ALL_LINES = []
@@ -84,22 +85,32 @@ token_count = 0
 pos_counts = collections.defaultdict(int)
 
 sentences = []
-for doc in tqdm.tqdm(pool.imap(process_line, ALL_LINES)):
+pbar = tqdm.tqdm(total=args.tokens)
+for doc in pool.imap(process_line, ALL_LINES):
   if token_count > args.tokens:
     break
   for sent in doc.sents:
     if len(sent) < 5:
       continue
+
     sentence = []
     for token in sent:
       token_count += 1
-      # Try using UD lemma merger, otherwise fallback to udpipe lemma output
-      token_lemma = ud_corpus.get_merged_lemma_for_word(token.text.lower())
-      if token_lemma is None:
-        token_lemma = token.lemma_
+      token_lemma = None
+
+      # Only assign lemma to nouns and verbs.
+      # Try using UD lemma merger, otherwise fallback to udpipe lemma output.
+      if token.pos_ == 'NOUN' or token.pos_ == 'VERB':
+        token_lemma = ud_corpus.merged_lemma_table.get(token.text.lower())
+        if token_lemma is None:
+          token_lemma = token.lemma_.lower()
+
       sentence.append({'word': token.text, 'lemma': token_lemma, 'pos': token.pos_})
       pos_counts[token.pos_] += 1
+
+    pbar.update(len(sentence))
     sentences.append(sentence)
+pbar.close()
 
 print('Tokens:', token_count)
 for tok, tokcount in pos_counts.items():
