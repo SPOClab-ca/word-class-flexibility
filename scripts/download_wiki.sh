@@ -3,6 +3,11 @@
 # To run: sh download_wiki.sh
 set -e
 
+wget https://dumps.wikimedia.org/nnwiki/20200301/nnwiki-20200301-pages-articles-multistream.xml.bz2
+bzip2 -d nnwiki*
+python ~/Documents/wikiextractor/WikiExtractor.py nnwiki* -o nn
+rm -rf nnwiki*
+
 wget https://dumps.wikimedia.org/dewiki/20200301/dewiki-20200301-pages-articles-multistream1.xml-p1p262468.bz2
 bzip2 -d dewiki*
 python ~/Documents/wikiextractor/WikiExtractor.py dewiki* -o de
@@ -37,11 +42,6 @@ wget https://dumps.wikimedia.org/lawiki/20200220/lawiki-20200220-pages-articles-
 bzip2 -d lawiki*
 python ~/Documents/wikiextractor/WikiExtractor.py lawiki* -o la
 rm -rf lawiki*
-
-wget https://dumps.wikimedia.org/nowiki/20200220/nowiki-20200220-pages-articles-multistream.xml.bz2
-bzip2 -d nowiki*
-python ~/Documents/wikiextractor/WikiExtractor.py nowiki* -o no
-rm -rf nowiki*
 
 wget https://dumps.wikimedia.org/dawiki/20200220/dawiki-20200220-pages-articles-multistream.xml.bz2
 bzip2 -d dawiki*

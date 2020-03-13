@@ -34,10 +34,8 @@ class SemanticEmbedding:
     """
     self.model_name = model_name
     self.bert_layer = layer
-    self.bert_model = transformers.AutoModel.from_pretrained(
-      model_name,
-      output_hidden_states=True
-    ).cuda()
+    bert_config = transformers.AutoConfig.from_pretrained(model_name, output_hidden_states=True)
+    self.bert_model = transformers.AutoModel.from_pretrained(model_name, config=bert_config).cuda()
     self.bert_tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
 
   

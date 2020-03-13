@@ -17,6 +17,7 @@ import multiprocessing
 import random
 import glob
 import tqdm
+import sys
 import spacy_udpipe
 import src.corpus
 
@@ -111,6 +112,7 @@ for doc in pool.imap(process_line, ALL_LINES):
     pbar.update(len(sentence))
     sentences.append(sentence)
 pbar.close()
+pool.close()
 
 print('Tokens:', token_count)
 for tok, tokcount in pos_counts.items():
@@ -120,3 +122,6 @@ save_file = args.dest_dir + '/' + args.lang + '.pkl'
 print('Saving:', save_file)
 with open(save_file, 'wb') as f:
   pickle.dump(sentences, f)
+
+# Weird bug where it sometimes hangs
+sys.exit(0)

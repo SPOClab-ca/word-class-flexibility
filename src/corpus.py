@@ -61,8 +61,8 @@ class POSCorpus(object):
   
 
   @classmethod
-  def create_from_bnc_pickled(cls, data_file_path):
-    """Initialize corpus from pickled BNC corpus, generated from preprocess/process_bnc.py"""
+  def create_from_pickle(cls, data_file_path):
+    """Initialize corpus from pkl file, containing lists of sentences"""
     corpus = POSCorpus()
     with open(data_file_path, 'rb') as f:
       corpus.sentences = pickle.load(f)
