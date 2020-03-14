@@ -17,7 +17,7 @@ import multiprocessing
 import random
 import glob
 import tqdm
-import sys
+import os
 import spacy_udpipe
 import src.corpus
 
@@ -122,6 +122,7 @@ save_file = args.dest_dir + '/' + args.lang + '.pkl'
 print('Saving:', save_file)
 with open(save_file, 'wb') as f:
   pickle.dump(sentences, f)
+print('Done.')
 
-# Weird bug where it sometimes hangs
-sys.exit(0)
+# Pool could still be running stuff, hacky solution is just force exit.
+os._exit(0)
