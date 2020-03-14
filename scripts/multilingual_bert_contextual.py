@@ -19,6 +19,7 @@ import sklearn.decomposition
 import scipy.stats
 import argparse
 import os
+from collections import defaultdict
 
 import src.corpus
 import src.semantic_embedding
@@ -52,6 +53,18 @@ lemma_count_df = lemma_count_df.sort_values('total_count', ascending=False)
 print('Remaining lemmas:', len(lemma_count_df), file=outf)
 print('Noun lemmas:', len(lemma_count_df[lemma_count_df.majority_tag == 'NOUN']), file=outf)
 print('Verb lemmas:', len(lemma_count_df[lemma_count_df.majority_tag == 'VERB']), file=outf)
+
+
+# Print lemma merge results
+with open(args.results_dir + '/' + args.pkl_file + '.lemmas.txt', 'w') as lemma_outf:
+
+  reverse_lemma_map = defaultdict(set)
+  for word, lemma, _ in corpus._iterate_words():
+    reverse_lemma_map[lemma].add(word)
+
+  for lemma in lemma_count_df.lemma:
+    for w in reverse_lemma_map[lemma]:
+      print(lemma, w, file=lemma_outf)
 
 
 lemma_count_df[['nv_cosine_similarity', 'n_variation', 'v_variation']] = lemma_count_df.apply(lambda row: embedder.get_contextual_nv_similarity(row.lemma, method="bert"),
