@@ -48,7 +48,12 @@ embedder.init_bert(model_name='bert-base-multilingual-cased', layer=12)
 lemma_count_df = corpus.get_per_lemma_stats()
 
 # Filter: must have at least [x] noun and [x] verb usages
-lemma_count_df = lemma_count_df[(lemma_count_df['noun_count'] >= 30) & (lemma_count_df['verb_count'] >= 30)]
+lemma_count_df = lemma_count_df[
+  (lemma_count_df['noun_count'] >= 30) &
+  (lemma_count_df['verb_count'] >= 30) &
+  (lemma_count_df['is_flexible']) &
+  (lemma_count_df['lemma'] != '_')
+]
 lemma_count_df = lemma_count_df.sort_values('total_count', ascending=False)
 print('Remaining lemmas:', len(lemma_count_df), file=outf)
 print('Noun lemmas:', len(lemma_count_df[lemma_count_df.majority_tag == 'NOUN']), file=outf)
@@ -67,8 +72,16 @@ with open(args.results_dir + '/' + args.pkl_file + '.lemmas.txt', 'w') as lemma_
       print(lemma, w, file=lemma_outf)
 
 
-lemma_count_df[['nv_cosine_similarity', 'n_variation', 'v_variation']] = lemma_count_df.apply(lambda row: embedder.get_contextual_nv_similarity(row.lemma, method="bert"),
-                       axis=1, result_type="expand")
+lemma_count_df[['nv_cosine_similarity', 'n_variation', 'v_variation']] = lemma_count_df.apply(
+  lambda row: embedder.get_contextual_nv_similarity(row.lemma, method="bert"),
+  axis=1, result_type="expand"
+)
+
+# Remove None values
+error_lemmas = lemma_count_df[lemma_count_df.nv_cosine_similarity.isna()].lemma.tolist()
+print('Error with the following lemmas:\n' + '\n'.join(error_lemmas), file=outf)
+lemma_count_df.dropna(inplace=True)
+
 lemma_count_df.to_csv(args.results_dir + '/' + args.pkl_file + '.lemma_count_df.csv', index=False)
 
 

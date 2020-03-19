@@ -6,6 +6,12 @@ import torch
 import transformers
 import tqdm
 
+
+# Throw when we encounter an issue processing a lemma
+class InvalidLemmaException(Exception):
+  pass
+
+
 class SemanticEmbedding:
   def __init__(self, sentences):
     self.sentences = sentences
@@ -153,6 +159,10 @@ class SemanticEmbedding:
               verb_indices.append(original_sentence_ix)
               break
 
+    if noun_embeddings == [] or verb_embeddings == []:
+      print('Error with lemma:', lemma)
+      raise InvalidLemmaException()
+
     noun_embeddings = np.vstack(noun_embeddings)
     verb_embeddings = np.vstack(verb_embeddings)
     return noun_embeddings, verb_embeddings, noun_indices, verb_indices
@@ -186,7 +196,10 @@ class SemanticEmbedding:
     if method == 'elmo':
       noun_embeddings, verb_embeddings = self.get_elmo_embeddings_for_lemma(lemma)
     elif method == 'bert':
-      noun_embeddings, verb_embeddings, _, _ = self.get_bert_embeddings_for_lemma(lemma)
+      try:
+        noun_embeddings, verb_embeddings, _, _ = self.get_bert_embeddings_for_lemma(lemma)
+      except InvalidLemmaException:
+        return None, None, None
     else:
       assert(False)
 
