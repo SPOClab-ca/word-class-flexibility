@@ -78,6 +78,9 @@ class SemanticEmbedding:
       if wordpiece_tokens[j].startswith('##'):
         whole_word += wordpiece_tokens[j][2:]
       else:
+        whole_word += wordpiece_tokens[j]
+
+      if len(whole_word) >= len(word):
         break
 
     return word == whole_word
