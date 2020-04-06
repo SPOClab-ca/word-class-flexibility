@@ -71,6 +71,8 @@ class SemanticEmbedding:
 
     if not word.startswith(wordpiece_tokens[i]):
       return False
+    if word == wordpiece_tokens[i]:
+      return True
 
     # Get the whole word, then compare
     whole_word = wordpiece_tokens[i]

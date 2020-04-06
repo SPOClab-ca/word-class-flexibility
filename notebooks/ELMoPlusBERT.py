@@ -37,7 +37,7 @@ get_ipython().run_line_magic('autoreload', '2')
 #corpus = src.corpus.POSCorpus.create_from_ud(data_file_list=ud_files['English'])
 
 BNC_FILE = "../data/bnc/bnc.pkl"
-corpus = src.corpus.POSCorpus.create_from_bnc_pickled(data_file_path=BNC_FILE)
+corpus = src.corpus.POSCorpus.create_from_pickle(data_file_path=BNC_FILE)
 
 
 # ## Compute embeddings on random part of the corpus
@@ -55,15 +55,15 @@ for ix in random_indices:
   sampled_sentences.append(corpus.sentences[ix])
   
 embedder = src.semantic_embedding.SemanticEmbedding(sampled_sentences)
-embedder.init_bert(model_name='xlm-roberta-base', layer=12)
+embedder.init_bert(model_name='bert-base-uncased', layer=12)
 
 
 # ## Compute embeddings of instances of a fixed lemma
 
-# In[7]:
+# In[4]:
 
 
-FIXED_LEMMA = "train"
+FIXED_LEMMA = "ring"
 noun_embeddings, verb_embeddings, noun_indices, verb_indices = embedder.get_bert_embeddings_for_lemma(FIXED_LEMMA)
 print("Noun instances:", noun_embeddings.shape[0])
 print("Verb instances:", verb_embeddings.shape[0])
@@ -71,7 +71,7 @@ print("Verb instances:", verb_embeddings.shape[0])
 
 # ## Apply PCA and plot
 
-# In[8]:
+# In[5]:
 
 
 pca = sklearn.decomposition.PCA(n_components=2)
@@ -81,7 +81,7 @@ all_embeddings_df['pos'] = ['noun'] * len(noun_embeddings) + ['verb'] * len(verb
 all_embeddings_df['sentence_ix'] = noun_indices + verb_indices
 
 
-# In[9]:
+# In[6]:
 
 
 plot = sns.scatterplot(data=all_embeddings_df.sample(frac=1), x='x0', y='x1', hue='pos')
@@ -90,10 +90,6 @@ plt.show()
 
 
 # ## Utility to inspect what it's capturing
-
-# In[11]:
-
-
 num_printed = 0
 for _, row in all_embeddings_df.iterrows():
   if row.x0 > 14: # <- Put whatever condition here
@@ -102,8 +98,6 @@ for _, row in all_embeddings_df.iterrows():
     num_printed += 1
   if num_printed > 10:
     break
-
-
 # ## Cosine similarity between noun and verb usages
 
 # In[7]:
@@ -120,7 +114,7 @@ print('Noun lemmas:', len(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'])
 print('Verb lemmas:', len(lemma_count_df[lemma_count_df.majority_tag == 'VERB']))
 
 
-# In[ ]:
+# In[8]:
 
 
 lemma_count_df[['nv_cosine_similarity', 'n_variation', 'v_variation']] =   lemma_count_df.apply(lambda row: embedder.get_contextual_nv_similarity(row.lemma, method="bert"),
