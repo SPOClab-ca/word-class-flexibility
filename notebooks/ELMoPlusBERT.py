@@ -60,10 +60,10 @@ embedder.init_bert(model_name='bert-base-uncased', layer=12)
 
 # ## Compute embeddings of instances of a fixed lemma
 
-# In[4]:
+# In[88]:
 
 
-FIXED_LEMMA = "ring"
+FIXED_LEMMA = "work"
 noun_embeddings, verb_embeddings, noun_indices, verb_indices = embedder.get_bert_embeddings_for_lemma(FIXED_LEMMA)
 print("Noun instances:", noun_embeddings.shape[0])
 print("Verb instances:", verb_embeddings.shape[0])
@@ -71,21 +71,30 @@ print("Verb instances:", verb_embeddings.shape[0])
 
 # ## Apply PCA and plot
 
-# In[5]:
+# In[89]:
 
 
 pca = sklearn.decomposition.PCA(n_components=2)
 all_embeddings = pca.fit_transform(np.vstack([noun_embeddings, verb_embeddings]))
 all_embeddings_df = pd.DataFrame({'x0': all_embeddings[:,0], 'x1': all_embeddings[:,1]})
-all_embeddings_df['pos'] = ['noun'] * len(noun_embeddings) + ['verb'] * len(verb_embeddings)
+all_embeddings_df['pos'] = ['Noun'] * len(noun_embeddings) + ['Verb'] * len(verb_embeddings)
 all_embeddings_df['sentence_ix'] = noun_indices + verb_indices
 
 
-# In[6]:
+# In[95]:
 
 
-plot = sns.scatterplot(data=all_embeddings_df.sample(frac=1), x='x0', y='x1', hue='pos')
-plot.set(title="Contextual embeddings for lemma: '%s'" % FIXED_LEMMA)
+plot = sns.scatterplot(data=all_embeddings_df.sample(min(len(all_embeddings), 1000)),
+                       x='x0', y='x1', hue='pos', linewidth=0, s=20,
+                       palette=sns.color_palette("muted", n_colors=2))
+handles, labels = plot.get_legend_handles_labels()
+plot.legend(handles=handles[1:], labels=labels[1:], loc="upper right")
+plt.suptitle("Lemma: %s" % FIXED_LEMMA, fontsize=14, y=0.95)
+plt.xlabel('PC1')
+plt.ylabel('PC2')
+plot.axes.get_xaxis().set_ticks([])
+plot.axes.get_yaxis().set_ticks([])
+#plt.savefig('bert-work.pdf')
 plt.show()
 
 
