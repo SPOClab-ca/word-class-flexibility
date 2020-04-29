@@ -39,6 +39,15 @@ LANGUAGES = {
   'ro': 'Romanian',
   'sl': 'Slovenian',
   'zh': 'Chinese',
+  'hr': 'Croatian',
+  'ca': 'Catalan',
+  'et': 'Estonian',
+  'pt': 'Portuguese',
+  'sv': 'Swedish',
+  'gl': 'Galician',
+  'bg': 'Bulgarian',
+  'ko': 'Korean',
+  'fi': 'Finnish',
 }
 
 parser = argparse.ArgumentParser()
@@ -81,13 +90,14 @@ nlp = spacy_udpipe.load(args.lang)
 def process_line(line):
   return nlp(line)
 
-pool = multiprocessing.Pool()
+pool = multiprocessing.Pool(1)
 token_count = 0
 pos_counts = collections.defaultdict(int)
 
 sentences = []
 pbar = tqdm.tqdm(total=args.tokens)
-for doc in pool.imap(process_line, ALL_LINES):
+#for doc in pool.imap(process_line, ALL_LINES):
+for doc in map(process_line, ALL_LINES):
   if token_count > args.tokens:
     break
   for sent in doc.sents:

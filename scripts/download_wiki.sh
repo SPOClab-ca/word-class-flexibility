@@ -1,7 +1,52 @@
-# Script to download and preprocess Wikipedia dumps for 17 languages.
+# Script to download and preprocess Wikipedia dumps for all languages.
 # URLs from: https://dumps.wikimedia.org/backup-index.html
 # To run: sh download_wiki.sh
 set -e
+
+wget https://dumps.wikimedia.org/hrwiki/20200401/hrwiki-20200401-pages-articles-multistream.xml.bz2
+bzip2 -d hrwiki*
+python ~/Documents/wikiextractor/WikiExtractor.py hrwiki* -o hr
+rm -rf hrwiki*
+
+wget https://dumps.wikimedia.org/cawiki/20200401/cawiki-20200401-pages-articles-multistream.xml.bz2
+bzip2 -d cawiki*
+python ~/Documents/wikiextractor/WikiExtractor.py cawiki* -o ca
+rm -rf cawiki*
+
+wget https://dumps.wikimedia.org/etwiki/20200401/etwiki-20200401-pages-articles-multistream.xml.bz2
+bzip2 -d etwiki*
+python ~/Documents/wikiextractor/WikiExtractor.py etwiki* -o et
+rm -rf etwiki*
+
+wget https://dumps.wikimedia.org/ptwiki/20200401/ptwiki-20200401-pages-articles-multistream1.xml-p1p95099.bz2
+bzip2 -d ptwiki*
+python ~/Documents/wikiextractor/WikiExtractor.py ptwiki* -o pt
+rm -rf ptwiki*
+
+wget https://dumps.wikimedia.org/svwiki/20200401/svwiki-20200401-pages-articles-multistream1.xml-p1p149665.bz2
+bzip2 -d svwiki*
+python ~/Documents/wikiextractor/WikiExtractor.py svwiki* -o sv
+rm -rf svwiki*
+
+wget https://dumps.wikimedia.org/glwiki/20200401/glwiki-20200401-pages-articles-multistream.xml.bz2
+bzip2 -d glwiki*
+python ~/Documents/wikiextractor/WikiExtractor.py glwiki* -o gl
+rm -rf glwiki*
+
+wget https://dumps.wikimedia.org/bgwiki/20200401/bgwiki-20200401-pages-articles-multistream.xml.bz2
+bzip2 -d bgwiki*
+python ~/Documents/wikiextractor/WikiExtractor.py bgwiki* -o 'bg'
+rm -rf bgwiki*
+
+wget https://dumps.wikimedia.org/kowiki/20200401/kowiki-20200401-pages-articles-multistream1.xml-p1p76864.bz2
+bzip2 -d kowiki*
+python ~/Documents/wikiextractor/WikiExtractor.py kowiki* -o ko
+rm -rf kowiki*
+
+wget https://dumps.wikimedia.org/fiwiki/20200401/fiwiki-20200401-pages-articles-multistream.xml.bz2
+bzip2 -d fiwiki*
+python ~/Documents/wikiextractor/WikiExtractor.py fiwiki* -o 'fi'
+rm -rf fiwiki*
 
 wget https://dumps.wikimedia.org/nnwiki/20200301/nnwiki-20200301-pages-articles-multistream.xml.bz2
 bzip2 -d nnwiki*
