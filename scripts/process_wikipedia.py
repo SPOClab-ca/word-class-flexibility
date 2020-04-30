@@ -20,35 +20,7 @@ import tqdm
 import os
 import spacy_udpipe
 import src.corpus
-
-LANGUAGES = {
-  'ar': 'Arabic',
-  'da': 'Danish',
-  'de': 'German',
-  'en': 'English',
-  'es': 'Spanish',
-  'fr': 'French',
-  'he': 'Hebrew',
-  'id': 'Indonesian',
-  'it': 'Italian',
-  'ja': 'Japanese',
-  'la': 'Latin',
-  'nl': 'Dutch',
-  'nn': 'Norwegian',
-  'pl': 'Polish',
-  'ro': 'Romanian',
-  'sl': 'Slovenian',
-  'zh': 'Chinese',
-  'hr': 'Croatian',
-  'ca': 'Catalan',
-  'et': 'Estonian',
-  'pt': 'Portuguese',
-  'sv': 'Swedish',
-  'gl': 'Galician',
-  'bg': 'Bulgarian',
-  'ko': 'Korean',
-  'fi': 'Finnish',
-}
+import src.const
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--wiki_dir', type=str)
@@ -63,7 +35,7 @@ print(args)
 spacy_udpipe.download(args.lang)
 
 # Process UD to get lemma mappings
-lang_name_full = LANGUAGES[args.lang]
+lang_name_full = src.const.LANGUAGES[args.lang]
 ud_treebanks = src.corpus.group_treebanks_by_language(args.ud_dir)[lang_name_full]
 print('Processing UD:', lang_name_full)
 ud_corpus = src.corpus.POSCorpus.create_from_ud(data_file_list=ud_treebanks)
