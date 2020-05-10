@@ -36,7 +36,8 @@ get_ipython().run_line_magic('autoreload', '2')
 #ud_files = src.corpus.group_treebanks_by_language(UD_PATH)
 #corpus = src.corpus.POSCorpus.create_from_ud(data_file_list=ud_files['English'])
 
-BNC_FILE = "../data/bnc/bnc.pkl"
+BNC_FILE = "../data/wiki/processed/en.pkl"
+#BNC_FILE = "../data/bnc/bnc.pkl"
 corpus = src.corpus.POSCorpus.create_from_pickle(data_file_path=BNC_FILE)
 
 
@@ -56,14 +57,15 @@ for ix in random_indices:
   
 embedder = src.semantic_embedding.SemanticEmbedding(sampled_sentences)
 embedder.init_bert(model_name='bert-base-uncased', layer=12)
+#embedder.init_elmo()
 
 
 # ## Compute embeddings of instances of a fixed lemma
 
-# In[88]:
+# In[4]:
 
 
-FIXED_LEMMA = "work"
+FIXED_LEMMA = "talk"
 noun_embeddings, verb_embeddings, noun_indices, verb_indices = embedder.get_bert_embeddings_for_lemma(FIXED_LEMMA)
 print("Noun instances:", noun_embeddings.shape[0])
 print("Verb instances:", verb_embeddings.shape[0])
@@ -71,7 +73,7 @@ print("Verb instances:", verb_embeddings.shape[0])
 
 # ## Apply PCA and plot
 
-# In[89]:
+# In[5]:
 
 
 pca = sklearn.decomposition.PCA(n_components=2)
@@ -81,7 +83,7 @@ all_embeddings_df['pos'] = ['Noun'] * len(noun_embeddings) + ['Verb'] * len(verb
 all_embeddings_df['sentence_ix'] = noun_indices + verb_indices
 
 
-# In[95]:
+# In[ ]:
 
 
 plot = sns.scatterplot(data=all_embeddings_df.sample(min(len(all_embeddings), 1000)),
@@ -123,20 +125,20 @@ print('Noun lemmas:', len(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'])
 print('Verb lemmas:', len(lemma_count_df[lemma_count_df.majority_tag == 'VERB']))
 
 
-# In[8]:
+# In[ ]:
 
 
 lemma_count_df[['nv_cosine_similarity', 'n_variation', 'v_variation']] =   lemma_count_df.apply(lambda row: embedder.get_contextual_nv_similarity(row.lemma, method="bert"),
                        axis=1, result_type="expand")
 
 
-# In[9]:
+# In[ ]:
 
 
 lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_similarity', 'n_variation', 'v_variation']]   .sort_values('nv_cosine_similarity').head(8)
 
 
-# In[10]:
+# In[ ]:
 
 
 lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_similarity', 'n_variation', 'v_variation']]   .sort_values('nv_cosine_similarity', ascending=False).head(8)
@@ -144,7 +146,7 @@ lemma_count_df[['lemma', 'noun_count', 'verb_count', 'majority_tag', 'nv_cosine_
 
 # ## Difference in similarity when base is noun vs verb
 
-# In[11]:
+# In[ ]:
 
 
 plot = sns.distplot(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_cosine_similarity, label='Base=N')
@@ -155,14 +157,14 @@ plot.set(title="Average Cosine Similarity between Noun/Verb Usage",
 plt.show()
 
 
-# In[12]:
+# In[ ]:
 
 
 print('Mean cosine similarity when Base=N:', np.mean(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_cosine_similarity))
 print('Mean cosine similarity when Base=V:', np.mean(lemma_count_df[lemma_count_df.majority_tag == 'VERB'].nv_cosine_similarity))
 
 
-# In[13]:
+# In[ ]:
 
 
 # T-test of difference in mean
@@ -170,9 +172,25 @@ scipy.stats.ttest_ind(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_c
                       lemma_count_df[lemma_count_df.majority_tag == 'VERB'].nv_cosine_similarity)
 
 
+# ## Difference in variation between noun and verb
+
+# In[ ]:
+
+
+print('Mean noun variation:', np.mean(lemma_count_df.n_variation))
+print('Mean verb variation:', np.mean(lemma_count_df.v_variation))
+
+
+# In[ ]:
+
+
+# Paired t-test for difference
+scipy.stats.ttest_rel(lemma_count_df.n_variation, lemma_count_df.v_variation)
+
+
 # ## Difference in variation between majority and minority class
 
-# In[14]:
+# In[ ]:
 
 
 majority_variation = np.where(lemma_count_df.majority_tag == 'NOUN', lemma_count_df.n_variation, lemma_count_df.v_variation)
@@ -185,16 +203,36 @@ plot.set(title="Semantic variation within majority and minority POS class",
 plt.show()
 
 
-# In[15]:
+# In[ ]:
 
 
 print('Mean majority variation:', np.mean(majority_variation))
 print('Mean minority variation:', np.mean(minority_variation))
 
 
-# In[16]:
+# In[ ]:
 
 
 # Paired t-test for difference
 scipy.stats.ttest_rel(majority_variation, minority_variation)
+
+
+# ## MTurk correlation
+
+# In[ ]:
+
+
+annotation_df = pd.read_csv('../data/annotations/myself_plus_mturk.csv')
+
+
+# In[ ]:
+
+
+annotation_df = pd.merge(annotation_df, lemma_count_df, on='lemma')
+
+
+# In[ ]:
+
+
+scipy.stats.spearmanr(annotation_df.mean_score, annotation_df.nv_cosine_similarity)
 

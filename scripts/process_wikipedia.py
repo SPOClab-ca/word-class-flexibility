@@ -7,18 +7,19 @@ Usage:
     --ud_dir=data/ud_all/ud-treebanks-v2.5/ \
     --dest_dir=data/processed/ \
     --lang=nl \
+    --model=udpipe \
     --tokens 1000
 """
 
 import collections
 import argparse
 import pickle
-import multiprocessing
 import random
 import glob
 import tqdm
 import os
 import spacy_udpipe
+import stanza
 import src.corpus
 import src.const
 
@@ -27,12 +28,16 @@ parser.add_argument('--wiki_dir', type=str)
 parser.add_argument('--ud_dir', type=str)
 parser.add_argument('--dest_dir', type=str)
 parser.add_argument('--lang', type=str)
+parser.add_argument('--model', choices=['udpipe', 'stanza'])
 parser.add_argument('--tokens', type=int)
 args = parser.parse_args()
 print(args)
 
 # Download language models
-spacy_udpipe.download(args.lang)
+if args.model == 'udpipe':
+  spacy_udpipe.download(args.lang)
+elif args.model == 'stanza':
+  stanza.download(args.lang)
 
 # Process UD to get lemma mappings
 lang_name_full = src.const.LANGUAGES[args.lang]
@@ -58,43 +63,73 @@ print('Lines:', len(ALL_LINES))
 random.seed(12345)
 random.shuffle(ALL_LINES)
 
-nlp = spacy_udpipe.load(args.lang)
+if args.model == 'udpipe':
+  nlp = spacy_udpipe.load(args.lang)
+elif args.model == 'stanza':
+  nlp = stanza.Pipeline(args.lang)
+
 def process_line(line):
   return nlp(line)
 
-pool = multiprocessing.Pool(1)
 token_count = 0
 pos_counts = collections.defaultdict(int)
 
 sentences = []
 pbar = tqdm.tqdm(total=args.tokens)
-#for doc in pool.imap(process_line, ALL_LINES):
-for doc in map(process_line, ALL_LINES):
-  if token_count > args.tokens:
-    break
-  for sent in doc.sents:
-    if len(sent) < 5:
-      continue
 
-    sentence = []
-    for token in sent:
-      token_count += 1
-      token_lemma = None
+if args.model == 'udpipe':
+  for doc in map(process_line, ALL_LINES):
+    if token_count > args.tokens:
+      break
+    for sent in doc.sents:
+      if len(sent) < 5:
+        continue
 
-      # Only assign lemma to nouns and verbs.
-      # Try using UD lemma merger, otherwise fallback to udpipe lemma output.
-      if token.pos_ == 'NOUN' or token.pos_ == 'VERB':
-        token_lemma = ud_corpus.merged_lemma_table.get(token.text.lower())
-        if token_lemma is None:
-          token_lemma = token.lemma_.lower()
+      sentence = []
+      for token in sent:
+        token_count += 1
+        token_lemma = None
 
-      sentence.append({'word': token.text, 'lemma': token_lemma, 'pos': token.pos_})
-      pos_counts[token.pos_] += 1
+        # Only assign lemma to nouns and verbs.
+        # Try using UD lemma merger, otherwise fallback to udpipe lemma output.
+        if token.pos_ == 'NOUN' or token.pos_ == 'VERB':
+          token_lemma = ud_corpus.merged_lemma_table.get(token.text.lower())
+          if token_lemma is None:
+            token_lemma = token.lemma_.lower()
 
-    pbar.update(len(sentence))
-    sentences.append(sentence)
+        sentence.append({'word': token.text, 'lemma': token_lemma, 'pos': token.pos_})
+        pos_counts[token.pos_] += 1
+
+      pbar.update(len(sentence))
+      sentences.append(sentence)
+
+elif args.model == 'stanza':
+  for doc in map(process_line, ALL_LINES):
+    if token_count > args.tokens:
+      break
+    for sent in doc.sentences:
+      if len(sent.words) < 5:
+        continue
+
+      sentence = []
+      for token in sent.words:
+        token_count += 1
+        token_lemma = None
+
+        # Only assign lemma to nouns and verbs.
+        # Try using UD lemma merger, otherwise fallback to udpipe lemma output.
+        if token.upos == 'NOUN' or token.upos == 'VERB':
+          token_lemma = ud_corpus.merged_lemma_table.get(token.text.lower())
+          if token_lemma is None:
+            token_lemma = token.lemma.lower()
+
+        sentence.append({'word': token.text, 'lemma': token_lemma, 'pos': token.upos})
+        pos_counts[token.upos] += 1
+
+      pbar.update(len(sentence))
+      sentences.append(sentence)
+
 pbar.close()
-pool.close()
 
 print('Tokens:', token_count)
 for tok, tokcount in pos_counts.items():
@@ -105,6 +140,3 @@ print('Saving:', save_file)
 with open(save_file, 'wb') as f:
   pickle.dump(sentences, f)
 print('Done.')
-
-# Pool could still be running stuff, hacky solution is just force exit.
-os._exit(0)
