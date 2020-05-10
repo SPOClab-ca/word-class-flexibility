@@ -41,13 +41,12 @@ df
 
 # ## Compare two languages on differences
 
-# In[4]:
+# In[19]:
 
 
-lang1_df = df[df.Language_ID == 'slo']
-lang2_df = df[df.Language_ID == 'pol']
+lang1_df = df[df.Language_ID == 'scr']
+lang2_df = df[df.Language_ID == 'bul']
 both_df = pd.merge(lang1_df, lang2_df, on='Parameter_Name')
 both_df = both_df[['Area_x', 'Parameter_Name', 'Value_x', 'Value_y']]
-both_df = both_df.rename(columns={'Value_x': 'Lang1', 'Value_y': 'Lang2'})
-both_df[both_df.Lang1 != both_df.Lang2]
+both_df[both_df.Value_x != both_df.Value_y].rename(columns={'Value_x': 'Croatian', 'Value_y': 'Bulgarian'})
 
