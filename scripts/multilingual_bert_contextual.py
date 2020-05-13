@@ -94,13 +94,18 @@ plot.set(title="Average Cosine Similarity between Noun/Verb Usage",
          xlabel="Cosine Similarity", ylabel="Count")
 plt.savefig(args.results_dir + '/' + args.pkl_file + '.semantic-shift.png')
 
-print('Mean cosine similarity when Base=N:', np.mean(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_cosine_similarity), file=outf)
-print('Mean cosine similarity when Base=V:', np.mean(lemma_count_df[lemma_count_df.majority_tag == 'VERB'].nv_cosine_similarity), file=outf)
+print('Mean cosine distance when Base=N:', 1-np.mean(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_cosine_similarity), file=outf)
+print('Mean cosine distance when Base=V:', 1-np.mean(lemma_count_df[lemma_count_df.majority_tag == 'VERB'].nv_cosine_similarity), file=outf)
 
 
 # T-test of difference in mean
 print(scipy.stats.ttest_ind(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_cosine_similarity,
                             lemma_count_df[lemma_count_df.majority_tag == 'VERB'].nv_cosine_similarity), file=outf)
+
+
+print('Mean noun variation:', np.mean(lemma_count_df.n_variation), file=outf)
+print('Mean verb variation:', np.mean(lemma_count_df.v_variation), file=outf)
+print(scipy.stats.ttest_rel(lemma_count_df.n_variation, lemma_count_df.v_variation), file=outf)
 
 
 # Difference in variation between majority and minority class

@@ -62,30 +62,36 @@ class SemanticEmbedding:
   # Check if wordpiece matches with a word at position i
   # Eg: ['my', 'cat', 'is', 'named', 'xiao', '##nu', '##an', '##hu', '##o']
   # Word:                            'xiaonuanhuo'
-  def _wordpiece_matches(self, wordpiece_tokens, word, i):
+  def _match_wordpiece(self, wordpiece_tokens, word, i):
     if word == None:
-      return False
+      return None
 
     word = word.lower()
     wordpiece_tokens = [wp.lower() for wp in wordpiece_tokens]
 
     if not word.startswith(wordpiece_tokens[i]):
-      return False
+      return None
     if word == wordpiece_tokens[i]:
-      return True
+      return [i]
 
     # Get the whole word, then compare
     whole_word = wordpiece_tokens[i]
+    match_ixs = [i]
     for j in range(i+1, len(wordpiece_tokens)):
       if wordpiece_tokens[j].startswith('##'):
         whole_word += wordpiece_tokens[j][2:]
+        match_ixs.append(j)
       else:
         whole_word += wordpiece_tokens[j]
+        match_ixs.append(j)
 
       if len(whole_word) >= len(word):
         break
 
-    return word == whole_word
+    if whole_word == word:
+      return match_ixs
+    else:
+      return None
 
 
   # Convert XLM tokens to BERT-like format. Example:
@@ -153,8 +159,10 @@ class SemanticEmbedding:
 
         # Get the embedding that matches token
         for i in range(len(wordpiece_tokens)):
-          if self._wordpiece_matches(wordpiece_tokens, lemma_form, i):
-            token_embedding = embeddings[i]
+          match_ixs = self._match_wordpiece(wordpiece_tokens, lemma_form, i)
+          if match_ixs:
+            token_embedding = embeddings[match_ixs[0]]
+            #token_embedding = np.mean([embeddings[i] for i in match_ixs], axis=0)
             if pos == 'NOUN':
               noun_embeddings.append(token_embedding)
               noun_indices.append(original_sentence_ix)

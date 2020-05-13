@@ -33,11 +33,12 @@ parser.add_argument('--tokens', type=int)
 args = parser.parse_args()
 print(args)
 
-# Download language models
 if args.model == 'udpipe':
   spacy_udpipe.download(args.lang)
+  nlp = spacy_udpipe.load(args.lang)
 elif args.model == 'stanza':
   stanza.download(args.lang)
+  nlp = stanza.Pipeline(args.lang, use_gpu=True)
 
 # Process UD to get lemma mappings
 lang_name_full = src.const.LANGUAGES[args.lang]
@@ -62,11 +63,6 @@ for fname in glob.glob(args.wiki_dir + '/' + args.lang + '/**/*'):
 print('Lines:', len(ALL_LINES))
 random.seed(12345)
 random.shuffle(ALL_LINES)
-
-if args.model == 'udpipe':
-  nlp = spacy_udpipe.load(args.lang)
-elif args.model == 'stanza':
-  nlp = stanza.Pipeline(args.lang)
 
 def process_line(line):
   return nlp(line)
