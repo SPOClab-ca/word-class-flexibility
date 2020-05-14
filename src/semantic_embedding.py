@@ -21,16 +21,7 @@ class SemanticEmbedding:
     @param layer = one of [0, 1, 2]
     """
     self.elmo = allennlp.commands.elmo.ElmoEmbedder(cuda_device=0)
-    data_as_tokens = [[t['word'] for t in sentence] for sentence in self.sentences]
-
-    BATCH_SIZE = 64
-    self.elmo_embeddings = []
-    for ix in tqdm.tqdm(range(0, len(data_as_tokens), BATCH_SIZE)):
-      batch = data_as_tokens[ix : ix+BATCH_SIZE]
-      batch_embeddings = self.elmo.embed_batch(batch)
-      # Only take embeddings from specified ELMo layer
-      batch_embeddings = [x[layer] for x in batch_embeddings]
-      self.elmo_embeddings.extend(batch_embeddings)
+    self.elmo_layer = layer
 
 
   def init_bert(self, model_name='bert-base-uncased', layer=12):
@@ -182,18 +173,36 @@ class SemanticEmbedding:
 
 
   def get_elmo_embeddings_for_lemma(self, lemma):
+    # Gather sentences that are relevant
+    relevant_sentences = []
+    sentence_indices = []
+    for sentence_ix, sentence in enumerate(self.sentences):
+      if any([t['lemma'] == lemma for t in sentence]):
+        sentence_indices.append(sentence_ix)
+        relevant_sentences.append(sentence[:100])
+
+    print('Processing lemma: %s (%d instances)' % (lemma, len(relevant_sentences)))
+
     noun_embeddings = []
     verb_embeddings = []
+    BATCH_SIZE = 32
+    for batch_ix in range(0, len(relevant_sentences), BATCH_SIZE):
+      batch_sentences = relevant_sentences[batch_ix : batch_ix+BATCH_SIZE]
+      batch_tokens = [[t['word'] for t in sentence] for sentence in batch_sentences]
+      batch_embeddings = self.elmo.embed_batch(batch_tokens)
+      # Only take embeddings from specified ELMo layer
+      batch_embeddings = [x[self.elmo_layer] for x in batch_embeddings]
 
-    for sentence_ix in range(len(self.sentences)):
-      token_list = self.sentences[sentence_ix]
-      embeddings = self.elmo_embeddings[sentence_ix]
-      for i in range(len(token_list)):
-        if token_list[i]['lemma'] == lemma:
-          if token_list[i]['pos'] == 'NOUN':
-            noun_embeddings.append(embeddings[i])
-          elif token_list[i]['pos'] == 'VERB':
-            verb_embeddings.append(embeddings[i])
+      for sentence_ix in range(len(batch_sentences)):
+        token_list = batch_sentences[sentence_ix]
+        for token_ix in range(len(token_list)):
+          if token_list[token_ix]['lemma'] == lemma:
+            if token_list[token_ix]['pos'] == 'NOUN':
+              noun_embeddings.append(batch_embeddings[sentence_ix][token_ix])
+              break
+            elif token_list[token_ix]['pos'] == 'VERB':
+              verb_embeddings.append(batch_embeddings[sentence_ix][token_ix])
+              break
 
     noun_embeddings = np.vstack(noun_embeddings)
     verb_embeddings = np.vstack(verb_embeddings)
