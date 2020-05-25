@@ -16,7 +16,7 @@ import src.semantic_embedding
 BNC_FILE = "../data/bnc/bnc.pkl"
 corpus = src.corpus.POSCorpus.create_from_bnc_pickled(data_file_path=BNC_FILE)
 
-annotation_df = pd.read_csv('../data/annotations/myself_plus_mturk.csv')
+annotation_df = pd.read_csv('../data/annotations/mturk.csv')
 relevant_lemmas = annotation_df.lemma.tolist()
 
 

@@ -1,0 +1,14 @@
+# British National Corpus
+bnc/
+
+# GloVe vectors
+glove/
+
+# Universal Dependencies
+ud_all/
+
+# WALS typology database
+wals-2020/
+
+# wiki/processed_udpipe contains processed files
+wiki/

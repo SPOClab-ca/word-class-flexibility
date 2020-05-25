@@ -4,7 +4,7 @@ library(ggplot2)
 library(ggrepel)
 
 attestation_dates <- read_csv('attestation_dates.csv')
-sim_annotations <- read_csv('myself_plus_mturk.csv')
+sim_annotations <- read_csv('mturk.csv')
 
 attestation_dates$gap <- attestation_dates$verb_date - attestation_dates$noun_date
 attestation_dates$gap <- pmax(attestation_dates$gap, -500)

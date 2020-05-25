@@ -5,7 +5,7 @@
 # 
 # In this notebook, we use contextual embeddings from ELMo/BERT to study semantic change of conversion.
 
-# In[1]:
+# In[ ]:
 
 
 import sys
@@ -29,25 +29,25 @@ get_ipython().run_line_magic('autoreload', '2')
 
 # ### Parse the corpus
 
-# In[2]:
+# In[ ]:
 
 
 #UD_PATH = '../data/ud_all/ud-treebanks-v2.5/'
 #ud_files = src.corpus.group_treebanks_by_language(UD_PATH)
 #corpus = src.corpus.POSCorpus.create_from_ud(data_file_list=ud_files['English'])
 
-BNC_FILE = "../data/wiki/processed/en.pkl"
+BNC_FILE = "../data/wiki/processed_udpipe/en.pkl"
 #BNC_FILE = "../data/bnc/bnc.pkl"
 corpus = src.corpus.POSCorpus.create_from_pickle(data_file_path=BNC_FILE)
 
 
 # ## Compute embeddings on random part of the corpus
 
-# In[3]:
+# In[ ]:
 
 
 # Take only 1M words out of 4M to make it run faster
-SAMPLE_PROPORTION = 1.0
+SAMPLE_PROPORTION = 1
 random.seed(12345)
 random_indices = random.sample(range(len(corpus.sentences)), int(SAMPLE_PROPORTION * len(corpus.sentences)))
 
@@ -56,31 +56,32 @@ for ix in random_indices:
   sampled_sentences.append(corpus.sentences[ix])
   
 embedder = src.semantic_embedding.SemanticEmbedding(sampled_sentences)
-embedder.init_bert(model_name='bert-base-uncased', layer=12)
-#embedder.init_elmo()
+#embedder.init_bert(model_name='xlm-roberta-base', layer=11)
+embedder.init_elmo()
 
 
 # ## Compute embeddings of instances of a fixed lemma
 
-# In[4]:
+# In[ ]:
 
 
-FIXED_LEMMA = "talk"
-noun_embeddings, verb_embeddings, noun_indices, verb_indices = embedder.get_bert_embeddings_for_lemma(FIXED_LEMMA)
+FIXED_LEMMA = "work"
+#noun_embeddings, verb_embeddings, noun_indices, verb_indices = embedder.get_bert_embeddings_for_lemma(FIXED_LEMMA)
+noun_embeddings, verb_embeddings = embedder.get_elmo_embeddings_for_lemma(FIXED_LEMMA)
 print("Noun instances:", noun_embeddings.shape[0])
 print("Verb instances:", verb_embeddings.shape[0])
 
 
 # ## Apply PCA and plot
 
-# In[5]:
+# In[ ]:
 
 
 pca = sklearn.decomposition.PCA(n_components=2)
 all_embeddings = pca.fit_transform(np.vstack([noun_embeddings, verb_embeddings]))
 all_embeddings_df = pd.DataFrame({'x0': all_embeddings[:,0], 'x1': all_embeddings[:,1]})
 all_embeddings_df['pos'] = ['Noun'] * len(noun_embeddings) + ['Verb'] * len(verb_embeddings)
-all_embeddings_df['sentence_ix'] = noun_indices + verb_indices
+#all_embeddings_df['sentence_ix'] = noun_indices + verb_indices
 
 
 # In[ ]:
@@ -111,7 +112,7 @@ for _, row in all_embeddings_df.iterrows():
     break
 # ## Cosine similarity between noun and verb usages
 
-# In[7]:
+# In[ ]:
 
 
 lemma_count_df = corpus.get_per_lemma_stats()
@@ -128,7 +129,7 @@ print('Verb lemmas:', len(lemma_count_df[lemma_count_df.majority_tag == 'VERB'])
 # In[ ]:
 
 
-lemma_count_df[['nv_cosine_similarity', 'n_variation', 'v_variation']] =   lemma_count_df.apply(lambda row: embedder.get_contextual_nv_similarity(row.lemma, method="bert"),
+lemma_count_df[['nv_cosine_similarity', 'n_variation', 'v_variation']] =   lemma_count_df.apply(lambda row: embedder.get_contextual_nv_similarity(row.lemma, method="elmo"),
                        axis=1, result_type="expand")
 
 
@@ -160,8 +161,8 @@ plt.show()
 # In[ ]:
 
 
-print('Mean cosine similarity when Base=N:', np.mean(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_cosine_similarity))
-print('Mean cosine similarity when Base=V:', np.mean(lemma_count_df[lemma_count_df.majority_tag == 'VERB'].nv_cosine_similarity))
+print('Mean cosine distance when Base=N:', 1-np.mean(lemma_count_df[lemma_count_df.majority_tag == 'NOUN'].nv_cosine_similarity))
+print('Mean cosine distance when Base=V:', 1-np.mean(lemma_count_df[lemma_count_df.majority_tag == 'VERB'].nv_cosine_similarity))
 
 
 # In[ ]:
@@ -222,7 +223,7 @@ scipy.stats.ttest_rel(majority_variation, minority_variation)
 # In[ ]:
 
 
-annotation_df = pd.read_csv('../data/annotations/myself_plus_mturk.csv')
+annotation_df = pd.read_csv('../data/annotations/mturk.csv')
 
 
 # In[ ]:

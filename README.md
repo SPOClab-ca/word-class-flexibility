@@ -1,5 +1,7 @@
-# Syntax Flexibility
+# Word Class Flexibility (EMNLP 2020)
 
-Project to investigate syntax flexibility of word classes across languages using corpora
+Source code and data for paper: "*Word class flexibility: A deep contextualized approach*" under review at EMNLP 2020.
 
-Collaboration with Yang Xu and Guillaume Thomas.
+## Reproducing results in the paper
+
+Todo
