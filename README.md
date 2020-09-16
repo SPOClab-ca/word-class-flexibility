@@ -1,6 +1,8 @@
-# Word Class Flexibility (EMNLP 2020)
+# Word Class Flexibility
 
-Source code and data for paper: "*Word class flexibility: A deep contextualized approach*" under review at EMNLP 2020.
+This repository contains the source code and data for our EMNLP 2020 paper: "*Word class flexibility: A deep contextualized approach*" by Bai Li, Guillaume Thomas, Yang Xu, and Frank Rudzicz.
+
+**Abstract**: Word class flexibility refers to the phenomenon whereby a single word form is used across different grammatical categories. Extensive work in linguistic typology has sought to characterize word class flexibility across languages, but quantifying this phenomenon accurately and at scale has been fraught with difficulties. We propose a principled methodology to explore regularity in word class flexibility. Our method builds on recent work in contextualized word embeddings to quantify semantic shift between word classes (e.g., noun-to-verb, verb-to-noun), and we apply this method to 37 languages. We find that contextualized embeddings not only capture human judgment of  class variation within words in English, but also uncover shared tendencies in class flexibility across languages. Specifically, we find greater semantic variation when flexible lemmas are used in their dominant word class, supporting the view that word class flexibility is a directional process. Our work highlights the utility of deep contextualized models in linguistic typology.
 
 ## Reproducing results in the paper
 
@@ -61,4 +63,3 @@ The following instructions reproduce the main results (Table 2) for English.
         --pkl_file en.pkl \
         --results_dir results/
     ```
-
