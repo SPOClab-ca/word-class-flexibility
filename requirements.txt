@@ -13,4 +13,4 @@ spacy==2.1.9
 stanza==1.0.1
 torch==1.4.0
 tqdm==4.38.0
-transformers==2.5.1
+transformers==4.30.0
